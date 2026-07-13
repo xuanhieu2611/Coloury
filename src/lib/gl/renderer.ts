@@ -277,20 +277,109 @@ export class Renderer {
 import { defaultRecipe } from '../recipe';
 const ZERO_RECIPE = defaultRecipe();
 
+// The GPU's max texture dimension caps both the uploaded source and the output
+// canvas. Probe it once via a throwaway context and cache the result.
+let cachedMaxTexSize = 0;
+export function maxTextureSize(): number {
+  if (cachedMaxTexSize) return cachedMaxTexSize;
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    cachedMaxTexSize = gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 4096;
+  } catch {
+    cachedMaxTexSize = 4096;
+  }
+  return cachedMaxTexSize;
+}
+
+/** Full-resolution output dimensions for a recipe (accounts for crop/rotate). */
+export function outputDimensions(
+  recipe: EditRecipe,
+  srcW: number,
+  srcH: number,
+): { w: number; h: number } {
+  const tf = computeCropTransform(recipe.crop, srcW, srcH);
+  return { w: tf.outW, h: tf.outH };
+}
+
+export interface ExportPlan {
+  /** Long edge of the exported image after any clamping. */
+  outW: number;
+  outH: number;
+  /** True when the result was shrunk below the ideal (GPU cap or user choice). */
+  downscaled: boolean;
+  /** True when the GPU's MAX_TEXTURE_SIZE forced a smaller size than requested. */
+  gpuClamped: boolean;
+}
+
 /**
- * One-shot full-resolution export: render the recipe against the original
- * image on an offscreen canvas and return a Blob. Preview and export share the
- * identical shader, so they match (PRD 5.3).
+ * Resolve the final export size given a desired output long edge (or null for
+ * full/original). Never upscales; clamps to the GPU limit so huge images can't
+ * silently fail the texture upload (PRD 4.5 + M4 large-image perf).
+ */
+export function planExport(
+  recipe: EditRecipe,
+  srcW: number,
+  srcH: number,
+  desiredLongEdge: number | null,
+): ExportPlan & { sourceScale: number } {
+  const full = outputDimensions(recipe, srcW, srcH);
+  const fullLong = Math.max(full.w, full.h);
+  const maxTex = maxTextureSize();
+
+  // Scale to hit the requested output long edge (never > 1 / upscale).
+  const requestScale = desiredLongEdge ? Math.min(1, desiredLongEdge / fullLong) : 1;
+  // Scale so neither the source texture nor the output canvas exceeds the cap.
+  const srcLong = Math.max(srcW, srcH);
+  const capScale = Math.min(maxTex / srcLong, maxTex / fullLong, 1);
+
+  const sourceScale = Math.min(requestScale, capScale);
+  const outW = Math.max(1, Math.round(full.w * sourceScale));
+  const outH = Math.max(1, Math.round(full.h * sourceScale));
+  return {
+    outW,
+    outH,
+    sourceScale,
+    downscaled: sourceScale < 1,
+    gpuClamped: capScale < requestScale,
+  };
+}
+
+/** Draw a source image onto a 2D canvas at a reduced scale for export. */
+function scaleSource(source: ImageSource, scale: number): HTMLCanvasElement {
+  const w = Math.max(1, Math.round((source.width as number) * scale));
+  const h = Math.max(1, Math.round((source.height as number) * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source as CanvasImageSource, 0, 0, w, h);
+  return canvas;
+}
+
+/**
+ * One-shot export: render the recipe against the original image on an offscreen
+ * canvas and return a Blob. Preview and export share the identical shader, so
+ * they match (PRD 5.3). `desiredLongEdge` picks a custom output size (PRD 4.5);
+ * the source is downscaled first when it (or the request) exceeds the GPU cap.
  */
 export async function exportImage(
   source: ImageSource,
   recipe: EditRecipe,
   format: 'image/jpeg' | 'image/png' | 'image/webp',
   quality = 0.92,
+  desiredLongEdge: number | null = null,
 ): Promise<Blob> {
+  const plan = planExport(recipe, source.width, source.height, desiredLongEdge);
+  // Downscaling the source proportionally yields the planned output size and
+  // keeps the source texture under MAX_TEXTURE_SIZE.
+  const effective: ImageSource =
+    plan.sourceScale < 1 ? scaleSource(source, plan.sourceScale) : source;
+
   const canvas = document.createElement('canvas');
   const renderer = new Renderer(canvas);
-  renderer.setImage(source);
+  renderer.setImage(effective);
   renderer.render(recipe);
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, format, quality),

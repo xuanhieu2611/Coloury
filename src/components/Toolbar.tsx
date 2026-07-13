@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
-import { exportImage } from '@/lib/gl/renderer';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { exportImage, planExport } from '@/lib/gl/renderer';
 import { useEditor } from '@/lib/store';
+import { summarizeExif } from '@/lib/exif';
 import { brandWordmark, btn, btnPrimary } from '@/lib/ui';
 import { IconSpinner } from './Icons';
 
@@ -12,6 +13,12 @@ const FORMATS = {
   'image/webp': 'WebP',
 } as const;
 type Format = keyof typeof FORMATS;
+
+/** Human-readable file size — KB below 1 MB so small files don't read "0.0 MB". */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 export function Toolbar() {
   const image = useEditor((s) => s.image);
@@ -25,9 +32,33 @@ export function Toolbar() {
   const [showExport, setShowExport] = useState(false);
   const [format, setFormat] = useState<Format>('image/jpeg');
   const [quality, setQuality] = useState(0.92);
+  // Export size: null = original/full; a number = custom long-edge in px.
+  const [sizeChoice, setSizeChoice] = useState<'original' | 'custom' | number>('original');
+  const [customEdge, setCustomEdge] = useState('2048');
   const [busy, setBusy] = useState(false);
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Requested output long edge (null = original), and the resolved plan (which
+  // may clamp below that for the GPU's max texture size).
+  const desiredLongEdge =
+    sizeChoice === 'original'
+      ? null
+      : sizeChoice === 'custom'
+        ? Math.max(16, parseInt(customEdge, 10) || 0) || null
+        : sizeChoice;
+  const plan = useMemo(
+    () => (image ? planExport(recipe, image.width, image.height, desiredLongEdge) : null),
+    [image, recipe, desiredLongEdge],
+  );
+
+  // Long-edge presets smaller than the full output make sense to offer.
+  const sizePresets = useMemo(() => {
+    if (!image) return [];
+    const full = planExport(recipe, image.width, image.height, null);
+    const fullLong = Math.max(full.outW, full.outH);
+    return [4096, 2048, 1024].filter((p) => p < fullLong);
+  }, [image, recipe]);
 
   // Keyboard: undo/redo shortcuts.
   useEffect(() => {
@@ -58,7 +89,7 @@ export function Toolbar() {
   const doExport = async () => {
     setBusy(true);
     try {
-      const blob = await exportImage(image.element, recipe, format, quality);
+      const blob = await exportImage(image.element, recipe, format, quality, desiredLongEdge);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/png' ? 'png' : 'webp';
@@ -85,7 +116,13 @@ export function Toolbar() {
           <span className="mx-1.5 text-border-strong">·</span>
           {image.width}×{image.height}
           <span className="mx-1.5 text-border-strong">·</span>
-          {(image.fileSize / 1024 / 1024).toFixed(1)} MB
+          {formatBytes(image.fileSize)}
+          {image.exif && summarizeExif(image.exif) && (
+            <>
+              <span className="mx-1.5 text-border-strong">·</span>
+              <span className="text-text-dim/80">{summarizeExif(image.exif)}</span>
+            </>
+          )}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1.5" role="toolbar" aria-label="Edit actions">
@@ -141,7 +178,7 @@ export function Toolbar() {
               Export photo
             </h3>
             <p className="mb-4 mt-1.5 text-xs leading-relaxed text-text-dim">
-              Full resolution ({image.width}×{image.height}). Nothing is baked until you download.
+              Rendered from the full-resolution original. Nothing is baked until you download.
             </p>
             <label className="my-3 flex items-center justify-between gap-3 text-sm">
               <span>Format</span>
@@ -157,6 +194,48 @@ export function Toolbar() {
                 ))}
               </select>
             </label>
+            <label className="my-3 flex items-center justify-between gap-3 text-sm">
+              <span>Size</span>
+              <select
+                className="rounded-md border border-border bg-panel-2 px-2.5 py-1.5 text-text focus-visible:outline-2 focus-visible:outline-ring"
+                value={String(sizeChoice)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSizeChoice(v === 'original' || v === 'custom' ? v : Number(v));
+                }}
+              >
+                <option value="original">Original</option>
+                {sizePresets.map((p) => (
+                  <option key={p} value={p}>
+                    {p}px long edge
+                  </option>
+                ))}
+                <option value="custom">Custom…</option>
+              </select>
+            </label>
+            {sizeChoice === 'custom' && (
+              <label className="my-3 flex items-center justify-between gap-3 text-sm">
+                <span>Long edge (px)</span>
+                <input
+                  type="number"
+                  min={16}
+                  className="w-28 rounded-md border border-border bg-panel-2 px-2.5 py-1.5 text-text focus-visible:outline-2 focus-visible:outline-ring"
+                  value={customEdge}
+                  onChange={(e) => setCustomEdge(e.target.value)}
+                />
+              </label>
+            )}
+            {plan && (
+              <p className="mb-1 text-xs text-text-dim">
+                Output: {plan.outW}×{plan.outH} px
+                {plan.gpuClamped && (
+                  <span className="text-danger">
+                    {' '}
+                    · capped to this GPU&apos;s max texture size
+                  </span>
+                )}
+              </p>
+            )}
             {format !== 'image/png' && (
               <label className="my-3 flex items-center justify-between gap-3 text-sm">
                 <span>Quality {Math.round(quality * 100)}%</span>

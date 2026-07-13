@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { cloneRecipe, defaultRecipe, type EditRecipe } from './recipe';
+import { parseExif, type ExifData } from './exif';
 
 export interface LoadedImage {
   element: HTMLImageElement; // full-resolution decoded image
@@ -8,6 +9,7 @@ export interface LoadedImage {
   width: number;
   height: number;
   fileSize: number;
+  exif: ExifData | null; // camera/lens/exposure metadata (JPEG only), if present
 }
 
 const MAX_PREVIEW = 2048; // long-edge cap for the live preview (PRD 5.3)
@@ -129,25 +131,54 @@ export const useEditor = create<EditorState>((set, get) => ({
   canRedo: () => get().future.length > 0,
 }));
 
+const HEIC_RE = /\.(heic|heif)$/i;
+function isHeic(file: File): boolean {
+  return file.type === 'image/heic' || file.type === 'image/heif' || HEIC_RE.test(file.name);
+}
+
+/** Decode a Blob URL into an HTMLImageElement (rejects on decode failure). */
+function decodeImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('decode-failed'));
+    img.src = url;
+  });
+}
+
 /**
  * Decode a File into a full-res HTMLImageElement plus a downsampled preview
- * canvas. Handles HEIC gracefully by relying on browser-native decode (Safari)
- * and surfacing a clear error elsewhere.
+ * canvas. HEIC/HEIF: tries browser-native decode first (Safari's is fast), then
+ * falls back to a client-side heic2any conversion so Chrome/Firefox work too.
+ * Also parses EXIF (JPEG only) for the camera/lens/exposure readout (PRD 4.1).
  */
 export async function loadImageFile(file: File): Promise<LoadedImage> {
-  const url = URL.createObjectURL(file);
+  const urls: string[] = [];
+  const objectUrl = (blob: Blob) => {
+    const u = URL.createObjectURL(blob);
+    urls.push(u);
+    return u;
+  };
+
   try {
-    const element = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () =>
-        reject(
-          new Error(
-            `Could not decode ${file.name}. HEIC may be unsupported in this browser — try JPEG/PNG/WebP.`,
-          ),
+    let element: HTMLImageElement;
+    try {
+      element = await decodeImage(objectUrl(file));
+    } catch {
+      if (!isHeic(file)) {
+        throw new Error(
+          `Could not decode ${file.name}. Supported formats: JPEG, PNG, WebP, HEIC.`,
         );
-      img.src = url;
-    });
+      }
+      // Native decode failed on a HEIC — convert to JPEG in the browser.
+      const heic2any = (await import('heic2any')).default;
+      const converted = (await heic2any({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.94,
+      })) as Blob;
+      element = await decodeImage(objectUrl(converted));
+    }
 
     const { naturalWidth: w, naturalHeight: h } = element;
     const scale = Math.min(1, MAX_PREVIEW / Math.max(w, h));
@@ -159,6 +190,16 @@ export async function loadImageFile(file: File): Promise<LoadedImage> {
     const ctx = preview.getContext('2d')!;
     ctx.drawImage(element, 0, 0, pw, ph);
 
+    // EXIF lives in JPEG APP1; other formats simply yield null.
+    let exif: ExifData | null = null;
+    if (file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name)) {
+      try {
+        exif = parseExif(await file.arrayBuffer());
+      } catch {
+        exif = null;
+      }
+    }
+
     return {
       element,
       preview,
@@ -166,9 +207,10 @@ export async function loadImageFile(file: File): Promise<LoadedImage> {
       width: w,
       height: h,
       fileSize: file.size,
+      exif,
     };
   } finally {
     // Revoke after decode; the <img> element retains its bitmap.
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    setTimeout(() => urls.forEach((u) => URL.revokeObjectURL(u)), 0);
   }
 }
