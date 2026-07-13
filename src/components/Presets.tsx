@@ -10,6 +10,7 @@ import {
   type Preset,
 } from '@/lib/presets';
 import { cloneRecipe } from '@/lib/recipe';
+import { btn, btnPrimary, chip, groupLabel } from '@/lib/ui';
 
 export function Presets() {
   const recipe = useEditor((s) => s.recipe);
@@ -39,25 +40,29 @@ export function Presets() {
   };
 
   return (
-    <div className="presets">
-      <div className="preset-group-label">Built-in</div>
-      <div className="preset-list">
+    <div>
+      <div className={`${groupLabel} mt-0.5 mb-1.5`}>Built-in</div>
+      <div className="flex flex-wrap gap-1.5">
         {BUILTIN_PRESETS.map((p) => (
-          <button key={p.id} className="preset-chip" onClick={() => apply(p)}>
+          <button key={p.id} className={chip} onClick={() => apply(p)}>
             {p.name}
           </button>
         ))}
       </div>
 
-      <div className="preset-group-label">Your presets</div>
+      <div className={`${groupLabel} mt-2.5 mb-1.5`}>Your presets</div>
       {userPresets.length === 0 && !naming && (
-        <div className="preset-empty">No saved presets yet.</div>
+        <div className="text-xs text-text-dim italic">No saved presets yet.</div>
       )}
-      <div className="preset-list">
+      <div className="flex flex-wrap gap-1.5">
         {userPresets.map((p) => (
-          <button key={p.id} className="preset-chip user" onClick={() => apply(p)} title={p.name}>
-            <span className="preset-chip-name">{p.name}</span>
-            <span className="preset-chip-x" title="Delete preset" onClick={(e) => remove(p.id, e)}>
+          <button key={p.id} className={`${chip} pr-1.5`} onClick={() => apply(p)} title={p.name}>
+            <span>{p.name}</span>
+            <span
+              className="inline-flex h-4 w-4 items-center justify-center rounded-full text-sm leading-none text-text-dim hover:bg-[rgba(255,122,122,0.12)] hover:text-danger"
+              title="Delete preset"
+              onClick={(e) => remove(p.id, e)}
+            >
               ×
             </span>
           </button>
@@ -65,9 +70,9 @@ export function Presets() {
       </div>
 
       {naming ? (
-        <div className="preset-save-row">
+        <div className="mt-3 flex items-center gap-1.5">
           <input
-            className="preset-name-input"
+            className="min-w-0 flex-1 rounded border border-border bg-panel-2 px-2 py-[5px] text-xs text-text outline-none focus:border-accent"
             autoFocus
             placeholder="Preset name"
             value={name}
@@ -80,15 +85,18 @@ export function Presets() {
               }
             }}
           />
-          <button className="tb-btn primary" onClick={save} disabled={!name.trim()}>
+          <button className={btnPrimary} onClick={save} disabled={!name.trim()}>
             Save
           </button>
-          <button className="tb-btn" onClick={() => setNaming(false)}>
+          <button className={btn} onClick={() => setNaming(false)}>
             Cancel
           </button>
         </div>
       ) : (
-        <button className="preset-save-btn" onClick={() => setNaming(true)}>
+        <button
+          className="mt-3 w-full rounded-md border border-dashed border-border bg-transparent py-[7px] text-xs text-text-dim hover:border-accent hover:text-text"
+          onClick={() => setNaming(true)}
+        >
           + Save current as preset
         </button>
       )}

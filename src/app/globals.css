@@ -1,46 +1,91 @@
-:root {
-  --bg: #191919;
-  --panel: #232323;
-  --panel-2: #2b2b2b;
-  --border: #383838;
-  --text: #d8d8d8;
-  --text-dim: #8a8a8a;
-  --accent: #4a9eff;
-  --accent-dim: #2f6db3;
-  --track: #3a3a3a;
-  --radius: 6px;
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #191919;
+  --color-panel: #232323;
+  --color-panel-2: #2b2b2b;
+  --color-border: #383838;
+  --color-text: #d8d8d8;
+  --color-text-dim: #8a8a8a;
+  --color-accent: #4a9eff;
+  --color-accent-dim: #2f6db3;
+  --color-track: #3a3a3a;
+  --color-danger: #ff7a7a;
+  --color-danger-soft: #ff6b6b;
+  --radius-md: 6px;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+      sans-serif;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 13px;
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-}
+/* Pseudo-elements / vendor range thumbs that utilities can't express cleanly. */
+@layer components {
+  .slider-range {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .slider-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    cursor: pointer;
+    border: 1px solid #999;
+  }
+  .slider-range::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    cursor: pointer;
+    border: 1px solid #999;
+  }
+  .slider-num::-webkit-inner-spin-button {
+    display: none;
+  }
 
-button {
-  font-family: inherit;
-  cursor: pointer;
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
+  .crop-handle::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  }
 }

@@ -16,6 +16,17 @@ const MIN = 0.05; // minimum crop size (fraction of image)
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
+const HANDLE_POS: Record<Exclude<Handle, 'move'>, string> = {
+  nw: 'top-[-8px] left-[-8px] cursor-nwse-resize',
+  ne: 'top-[-8px] right-[-8px] cursor-nesw-resize',
+  sw: 'bottom-[-8px] left-[-8px] cursor-nesw-resize',
+  se: 'bottom-[-8px] right-[-8px] cursor-nwse-resize',
+  n: 'top-[-8px] left-1/2 -translate-x-1/2 cursor-ns-resize',
+  s: 'bottom-[-8px] left-1/2 -translate-x-1/2 cursor-ns-resize',
+  w: 'left-[-8px] top-1/2 -translate-y-1/2 cursor-ew-resize',
+  e: 'right-[-8px] top-1/2 -translate-y-1/2 cursor-ew-resize',
+};
+
 export function CropOverlay({ crop, imageAspect, ratio, onChange }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
   // ratio is width/height in pixels; convert to normalized w/h ratio: w/h = ratio/A
@@ -45,36 +56,50 @@ export function CropOverlay({ crop, imageAspect, ratio, onChange }: Props) {
   };
 
   const pct = (v: number) => `${v * 100}%`;
-  const handles: Handle[] = ratio == null
-    ? ['nw', 'ne', 'sw', 'se', 'n', 's', 'w', 'e']
-    : ['nw', 'ne', 'sw', 'se'];
+  const handles: Exclude<Handle, 'move'>[] =
+    ratio == null ? ['nw', 'ne', 'sw', 'se', 'n', 's', 'w', 'e'] : ['nw', 'ne', 'sw', 'se'];
 
   return (
-    <div className="crop-overlay" ref={overlayRef}>
+    <div className="absolute inset-0 z-[6] touch-none" ref={overlayRef}>
       {/* Dark mask outside the crop rectangle (four bands). */}
-      <div className="crop-mask" style={{ left: 0, top: 0, width: '100%', height: pct(crop.y) }} />
       <div
-        className="crop-mask"
+        className="pointer-events-none absolute bg-black/55"
+        style={{ left: 0, top: 0, width: '100%', height: pct(crop.y) }}
+      />
+      <div
+        className="pointer-events-none absolute bg-black/55"
         style={{ left: 0, top: pct(crop.y + crop.h), width: '100%', height: pct(1 - crop.y - crop.h) }}
       />
-      <div className="crop-mask" style={{ left: 0, top: pct(crop.y), width: pct(crop.x), height: pct(crop.h) }} />
       <div
-        className="crop-mask"
-        style={{ left: pct(crop.x + crop.w), top: pct(crop.y), width: pct(1 - crop.x - crop.w), height: pct(crop.h) }}
+        className="pointer-events-none absolute bg-black/55"
+        style={{ left: 0, top: pct(crop.y), width: pct(crop.x), height: pct(crop.h) }}
+      />
+      <div
+        className="pointer-events-none absolute bg-black/55"
+        style={{
+          left: pct(crop.x + crop.w),
+          top: pct(crop.y),
+          width: pct(1 - crop.x - crop.w),
+          height: pct(crop.h),
+        }}
       />
 
       {/* Crop rectangle with rule-of-thirds grid + handles. */}
       <div
-        className="crop-rect"
+        className="absolute box-border cursor-move border border-white/90"
         style={{ left: pct(crop.x), top: pct(crop.y), width: pct(crop.w), height: pct(crop.h) }}
         onPointerDown={startDrag('move')}
       >
-        <div className="crop-third v" style={{ left: '33.33%' }} />
-        <div className="crop-third v" style={{ left: '66.66%' }} />
-        <div className="crop-third h" style={{ top: '33.33%' }} />
-        <div className="crop-third h" style={{ top: '66.66%' }} />
+        <div className="pointer-events-none absolute top-0 bottom-0 w-px bg-white/35" style={{ left: '33.33%' }} />
+        <div className="pointer-events-none absolute top-0 bottom-0 w-px bg-white/35" style={{ left: '66.66%' }} />
+        <div className="pointer-events-none absolute right-0 left-0 h-px bg-white/35" style={{ top: '33.33%' }} />
+        <div className="pointer-events-none absolute right-0 left-0 h-px bg-white/35" style={{ top: '66.66%' }} />
         {handles.map((h) => (
-          <div key={h} className={`crop-handle ${h}`} onPointerDown={startDrag(h)} />
+          <div
+            key={h}
+            className={`crop-handle absolute z-[2] h-4 w-4 ${HANDLE_POS[h]}`}
+            onPointerDown={startDrag(h)}
+          />
         ))}
       </div>
     </div>

@@ -191,6 +191,76 @@ export function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
+// Scalar params the AI Auto Edit (M3) is allowed to set. Deliberately excludes
+// curves and crop — auto-grading is about tone/color/presence, and a bad curve
+// or crop from the model would be far more destructive than a clamped slider.
+const AI_SCALAR_KEYS = [
+  'exposure',
+  'contrast',
+  'highlights',
+  'shadows',
+  'whites',
+  'blacks',
+  'temperature',
+  'tint',
+  'vibrance',
+  'saturation',
+  'clarity',
+  'texture',
+  'sharpening',
+  'vignette',
+] as const;
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * Turn an untrusted partial recipe from the AI vision model into a complete,
+ * range-valid `EditRecipe` (PRD 5.4: validate + clamp before applying). Starts
+ * from defaults, copies only recognized numeric fields, and clamps each to its
+ * `PARAM_RANGE` / band range. Unknown keys, NaN, strings, curves, and crop are
+ * ignored — so a malformed model response degrades to "no-op", never a crash.
+ */
+export function recipeFromAi(partial: unknown): EditRecipe {
+  const r = defaultRecipe();
+  if (!partial || typeof partial !== 'object') return r;
+  const p = partial as Record<string, unknown>;
+
+  for (const k of AI_SCALAR_KEYS) {
+    const v = p[k];
+    if (isNum(v)) {
+      const range = PARAM_RANGE[k];
+      (r[k] as number) = clamp(v, range.min, range.max);
+    }
+  }
+
+  if (p.hsl && typeof p.hsl === 'object') {
+    const hsl = p.hsl as Record<string, unknown>;
+    for (const band of HSL_BANDS) {
+      const ch = hsl[band];
+      if (ch && typeof ch === 'object') {
+        const c = ch as Record<string, unknown>;
+        (['hue', 'saturation', 'luminance'] as const).forEach((f) => {
+          if (isNum(c[f])) r.hsl[band][f] = clamp(c[f] as number, -100, 100);
+        });
+      }
+    }
+  }
+
+  if (p.splitToning && typeof p.splitToning === 'object') {
+    const st = p.splitToning as Record<string, unknown>;
+    const setSt = (k: keyof SplitToning, min: number, max: number) => {
+      if (isNum(st[k])) r.splitToning[k] = clamp(st[k] as number, min, max);
+    };
+    setSt('shadowHue', 0, 360);
+    setSt('shadowSaturation', 0, 100);
+    setSt('highlightHue', 0, 360);
+    setSt('highlightSaturation', 0, 100);
+    setSt('balance', -100, 100);
+  }
+
+  return r;
+}
+
 // Deep clone so history snapshots don't alias live state.
 export function cloneRecipe(r: EditRecipe): EditRecipe {
   return JSON.parse(JSON.stringify(r)) as EditRecipe;

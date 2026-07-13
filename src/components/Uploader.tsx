@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { loadImageFile, useEditor } from '@/lib/store';
+import { brandGradient } from '@/lib/ui';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
 
@@ -27,7 +28,9 @@ export function Uploader() {
 
   return (
     <div
-      className={`uploader ${dragOver ? 'drag' : ''}`}
+      className={`flex h-[340px] w-[min(560px,90vw)] cursor-pointer items-center justify-center rounded-[14px] border-2 border-dashed border-border bg-panel transition-[border-color,background] duration-150 ${
+        dragOver ? 'border-accent bg-[#202632]' : 'hover:border-accent hover:bg-[#202632]'
+      }`}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -47,11 +50,13 @@ export function Uploader() {
         hidden
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
-      <div className="uploader-inner">
-        <div className="uploader-logo">Coloury</div>
-        <div className="uploader-title">Drop a photo to start editing</div>
-        <div className="uploader-sub">or click to browse — JPEG, PNG, WebP, HEIC</div>
-        {error && <div className="uploader-error">{error}</div>}
+      <div className="text-center">
+        <div className={`mb-[18px] text-[26px] font-bold tracking-[0.5px] ${brandGradient}`}>
+          Coloury
+        </div>
+        <div className="mb-1.5 text-base text-text">Drop a photo to start editing</div>
+        <div className="text-text-dim">or click to browse — JPEG, PNG, WebP, HEIC</div>
+        {error && <div className="mt-3.5 max-w-[400px] text-danger">{error}</div>}
       </div>
     </div>
   );

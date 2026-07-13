@@ -29,7 +29,7 @@ export function Histogram() {
       ctx.moveTo(0, H);
       for (let i = 0; i < bins; i++) {
         const x = (i / (bins - 1)) * W;
-        const y = H - (Math.sqrt(ch[i] / max)) * H;
+        const y = H - Math.sqrt(ch[i] / max) * H;
         ctx.lineTo(x, y);
       }
       ctx.lineTo(W, H);
@@ -41,8 +41,13 @@ export function Histogram() {
   }, [data]);
 
   return (
-    <div className="histogram">
-      <canvas ref={canvasRef} width={280} height={90} />
+    <div className="border-b border-border px-3.5 py-2.5">
+      <canvas
+        ref={canvasRef}
+        width={280}
+        height={90}
+        className="block h-[90px] w-full rounded bg-[#141414]"
+      />
     </div>
   );
 }

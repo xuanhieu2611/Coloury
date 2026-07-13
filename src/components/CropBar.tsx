@@ -3,6 +3,7 @@
 import { Slider } from './Slider';
 import { ASPECT_PRESETS } from '@/lib/crop';
 import { defaultCrop, type Crop } from '@/lib/recipe';
+import { btn, btnPrimary, groupLabel } from '@/lib/ui';
 
 interface Props {
   crop: Crop;
@@ -29,14 +30,18 @@ export function CropBar({
     }, true);
 
   return (
-    <div className="crop-bar">
-      <div className="crop-bar-group">
-        <span className="crop-bar-label">Aspect</span>
-        <div className="crop-aspects">
+    <div className="absolute bottom-3.5 left-1/2 z-[7] flex max-w-[calc(100%-24px)] -translate-x-1/2 flex-wrap items-center justify-center gap-[18px] rounded-[10px] border border-border bg-[rgba(28,28,28,0.94)] px-3.5 py-2.5">
+      <div className="flex items-center gap-2">
+        <span className={groupLabel}>Aspect</span>
+        <div className="flex flex-wrap gap-1">
           {ASPECT_PRESETS.map((p) => (
             <button
               key={p.label}
-              className={`crop-aspect ${activeAspect === p.label ? 'active' : ''}`}
+              className={`rounded border px-2 py-1 text-[11px] ${
+                activeAspect === p.label
+                  ? 'border-accent bg-accent-dim text-text'
+                  : 'border-border bg-panel-2 text-text-dim hover:text-text'
+              }`}
               onClick={() =>
                 onAspect(p.label, p.ratio === 'original' ? imageAspect : p.ratio)
               }
@@ -47,8 +52,9 @@ export function CropBar({
         </div>
       </div>
 
-      <div className="crop-bar-group straighten">
+      <div className="flex min-w-[190px] flex-1 items-center gap-2">
         <Slider
+          className="m-0 w-full"
           label="Straighten"
           value={crop.angle}
           min={-45}
@@ -60,20 +66,20 @@ export function CropBar({
         />
       </div>
 
-      <div className="crop-bar-group">
-        <button className="tb-btn" title="Rotate 90° left" onClick={() => rotate(-1)}>
+      <div className="flex items-center gap-2">
+        <button className={btn} title="Rotate 90° left" onClick={() => rotate(-1)}>
           ⟲ 90°
         </button>
-        <button className="tb-btn" title="Rotate 90° right" onClick={() => rotate(1)}>
+        <button className={btn} title="Rotate 90° right" onClick={() => rotate(1)}>
           ⟳ 90°
         </button>
       </div>
 
-      <div className="crop-bar-group right">
-        <button className="tb-btn" onClick={onReset} title="Reset crop">
+      <div className="ml-auto flex items-center gap-2">
+        <button className={btn} onClick={onReset} title="Reset crop">
           Reset
         </button>
-        <button className="tb-btn primary" onClick={onDone}>
+        <button className={btnPrimary} onClick={onDone}>
           Done
         </button>
       </div>

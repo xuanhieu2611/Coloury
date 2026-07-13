@@ -11,6 +11,7 @@ import {
   type EditRecipe,
   type HslBand,
 } from '@/lib/recipe';
+import { groupLabel } from '@/lib/ui';
 
 type ScalarKey =
   | 'exposure'
@@ -93,15 +94,24 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="panel-section">
-      <div className="section-head">
-        <button className="section-toggle" onClick={() => setOpen((o) => !o)}>
-          <span className={`chevron ${open ? 'open' : ''}`}>▸</span>
+    <div className="border-b border-border">
+      <div className="flex items-center justify-between pr-2.5">
+        <button
+          className="flex flex-1 items-center gap-2 border-none bg-transparent px-3.5 py-[11px] text-left text-xs font-semibold tracking-[0.4px] text-text uppercase"
+          onClick={() => setOpen((o) => !o)}
+        >
+          <span
+            className={`inline-block text-text-dim transition-transform duration-[120ms] ${
+              open ? 'rotate-90' : ''
+            }`}
+          >
+            ▸
+          </span>
           {title}
         </button>
         {onReset && (
           <button
-            className="section-reset"
+            className="border-none bg-transparent text-sm text-text-dim hover:text-text"
             title={`Reset ${title}`}
             onClick={(e) => {
               e.stopPropagation();
@@ -112,7 +122,7 @@ function Section({
           </button>
         )}
       </div>
-      {open && <div className="section-body">{children}</div>}
+      {open && <div className="px-3.5 pt-1 pb-3.5">{children}</div>}
     </div>
   );
 }
@@ -130,18 +140,20 @@ function HslSection() {
 
   return (
     <>
-      <div className="hsl-swatches">
+      <div className="mb-2.5 flex gap-[5px]">
         {HSL_BANDS.map((b) => (
           <button
             key={b}
-            className={`hsl-swatch ${band === b ? 'active' : ''}`}
+            className={`h-[22px] flex-1 rounded border-2 p-0 ${
+              band === b ? 'border-white' : 'border-transparent'
+            }`}
             style={{ background: SWATCH[b] }}
             title={b}
             onClick={() => setBand(b)}
           />
         ))}
       </div>
-      <div className="hsl-name">{band}</div>
+      <div className="mb-1 font-semibold text-text capitalize">{band}</div>
       {(['hue', 'saturation', 'luminance'] as const).map((f) => (
         <Slider
           key={f}
@@ -180,12 +192,12 @@ function SplitToneSection() {
 
   return (
     <>
-      <div className="split-group">Shadows</div>
+      <div className={`${groupLabel} mt-3 mb-0.5`}>Shadows</div>
       <Slider label="Hue" value={split.shadowHue} min={0} max={360} step={1}
         onChange={(v) => set('shadowHue', v, false)} onCommit={commit} defaultValue={0} />
       <Slider label="Saturation" value={split.shadowSaturation} min={0} max={100} step={1}
         onChange={(v) => set('shadowSaturation', v, false)} onCommit={commit} defaultValue={0} />
-      <div className="split-group">Highlights</div>
+      <div className={`${groupLabel} mt-3 mb-0.5`}>Highlights</div>
       <Slider label="Hue" value={split.highlightHue} min={0} max={360} step={1}
         onChange={(v) => set('highlightHue', v, false)} onCommit={commit} defaultValue={0} />
       <Slider label="Saturation" value={split.highlightSaturation} min={0} max={100} step={1}
@@ -202,7 +214,7 @@ export function Panels() {
     update((r) => keys.forEach((k) => ((r[k] as number) = PARAM_RANGE[k]?.default ?? 0)));
 
   return (
-    <div className="panels">
+    <div>
       <Section title="Presets" defaultOpen={false}>
         <Presets />
       </Section>
@@ -215,7 +227,7 @@ export function Panels() {
       >
         <ScalarSlider k="temperature" />
         <ScalarSlider k="tint" />
-        <div className="divider" />
+        <div className="my-2.5 h-px bg-border" />
         <ScalarSlider k="exposure" />
         <ScalarSlider k="contrast" />
         <ScalarSlider k="highlights" />
@@ -251,10 +263,10 @@ export function Panels() {
         defaultOpen={false}
         onReset={() => resetKeys(['sharpening', 'sharpenRadius', 'noiseReduction'])}
       >
-        <div className="split-group">Sharpening</div>
+        <div className={`${groupLabel} mt-3 mb-0.5`}>Sharpening</div>
         <ScalarSlider k="sharpening" />
         <ScalarSlider k="sharpenRadius" />
-        <div className="split-group">Noise</div>
+        <div className={`${groupLabel} mt-3 mb-0.5`}>Noise</div>
         <ScalarSlider k="noiseReduction" />
       </Section>
 
@@ -265,11 +277,11 @@ export function Panels() {
           resetKeys(['vignette', 'vignetteMidpoint', 'vignetteFeather', 'grain', 'grainSize'])
         }
       >
-        <div className="split-group">Vignette</div>
+        <div className={`${groupLabel} mt-3 mb-0.5`}>Vignette</div>
         <ScalarSlider k="vignette" />
         <ScalarSlider k="vignetteMidpoint" />
         <ScalarSlider k="vignetteFeather" />
-        <div className="split-group">Grain</div>
+        <div className={`${groupLabel} mt-3 mb-0.5`}>Grain</div>
         <ScalarSlider k="grain" />
         <ScalarSlider k="grainSize" />
       </Section>

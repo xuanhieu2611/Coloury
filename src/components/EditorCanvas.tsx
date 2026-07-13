@@ -5,6 +5,7 @@ import { Renderer } from '@/lib/gl/renderer';
 import { useEditor } from '@/lib/store';
 import { computeHistogram, useHistogram } from '@/lib/histogram';
 import { defaultCrop, type Crop } from '@/lib/recipe';
+import { compareBtn, compareBtnActive } from '@/lib/ui';
 import { CropOverlay } from './CropOverlay';
 import { CropBar, fitRectToRatio } from './CropBar';
 
@@ -123,23 +124,35 @@ export function EditorCanvas() {
   const previewRotate = cropMode ? recipe.crop.angle + recipe.crop.orientation * 90 : 0;
 
   return (
-    <div className="canvas-stage">
+    <div className="absolute inset-0 flex items-center justify-center p-5">
       {glError ? (
-        <div className="canvas-error">{glError}</div>
+        <div className="max-w-[340px] text-center text-danger">{glError}</div>
       ) : (
-        <div className={`canvas-wrap ${cropMode ? 'cropping' : ''}`}>
+        <div className="relative inline-flex max-h-full max-w-full">
           <canvas
             ref={canvasRef}
-            className="edit-canvas"
+            className={`max-h-full max-w-full object-contain ${
+              cropMode ? '' : 'shadow-[0_4px_30px_rgba(0,0,0,0.5)]'
+            }`}
             style={cropMode ? { transform: `rotate(${previewRotate}deg)` } : undefined}
           />
           {splitOn && !cropMode && (
-            <div className="split-divider" style={{ left: `${splitFrac * 100}%` }}>
-              <div className="split-handle" onPointerDown={onDividerDrag}>
+            <div
+              className="pointer-events-none absolute top-0 bottom-0 z-[4] w-0 border-l-2 border-white/90 shadow-[0_0_6px_rgba(0,0,0,0.6)]"
+              style={{ left: `${splitFrac * 100}%` }}
+            >
+              <div
+                className="pointer-events-auto absolute top-1/2 left-0 flex h-[30px] w-[30px] -translate-x-1/2 -translate-y-1/2 cursor-ew-resize touch-none select-none items-center justify-center rounded-full bg-white/95 text-sm text-[#222]"
+                onPointerDown={onDividerDrag}
+              >
                 ⟺
               </div>
-              <span className="split-tag before">Before</span>
-              <span className="split-tag after">After</span>
+              <span className="absolute top-3 right-1.5 rounded-[3px] bg-black/55 px-[7px] py-0.5 text-[10px] tracking-[0.5px] text-white uppercase">
+                Before
+              </span>
+              <span className="absolute top-3 left-1.5 rounded-[3px] bg-black/55 px-[7px] py-0.5 text-[10px] tracking-[0.5px] text-white uppercase">
+                After
+              </span>
             </div>
           )}
           {cropMode && (
@@ -164,19 +177,19 @@ export function EditorCanvas() {
           onDone={() => setCropMode(false)}
         />
       ) : (
-        <div className="canvas-controls">
-          <button className="compare-btn" title="Crop & transform" onClick={enterCrop}>
+        <div className="absolute bottom-4 left-1/2 z-[5] flex -translate-x-1/2 gap-2">
+          <button className={compareBtn} title="Crop & transform" onClick={enterCrop}>
             Crop
           </button>
           <button
-            className={`compare-btn ${splitOn ? 'active' : ''}`}
+            className={`${compareBtn} ${splitOn ? compareBtnActive : ''}`}
             title="Split before/after"
             onClick={() => setSplitOn((s) => !s)}
           >
             Split
           </button>
           <button
-            className="compare-btn"
+            className={compareBtn}
             title="Hold to view original"
             onPointerDown={() => setShowOriginal(true)}
             onPointerUp={() => setShowOriginal(false)}

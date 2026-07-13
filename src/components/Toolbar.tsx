@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { exportImage } from '@/lib/gl/renderer';
 import { useEditor } from '@/lib/store';
+import { brandGradient, btn, btnPrimary } from '@/lib/ui';
 
 const FORMATS = {
   'image/jpeg': 'JPEG',
@@ -59,41 +60,51 @@ export function Toolbar() {
   };
 
   return (
-    <div className="toolbar">
-      <div className="toolbar-left">
-        <span className="brand">Coloury</span>
-        <span className="file-meta">
+    <div className="flex h-[46px] shrink-0 items-center justify-between border-b border-border bg-panel px-3.5">
+      <div className="flex min-w-0 items-baseline gap-3.5">
+        <span className={`font-bold ${brandGradient}`}>Coloury</span>
+        <span className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-text-dim">
           {image.name} · {image.width}×{image.height} · {(image.fileSize / 1024 / 1024).toFixed(1)} MB
         </span>
       </div>
-      <div className="toolbar-right">
-        <button className="tb-btn" disabled={past.length === 0} onClick={undo} title="Undo (⌘Z)">
+      <div className="flex gap-2">
+        <button className={btn} disabled={past.length === 0} onClick={undo} title="Undo (⌘Z)">
           Undo
         </button>
-        <button className="tb-btn" disabled={future.length === 0} onClick={redo} title="Redo (⇧⌘Z)">
+        <button className={btn} disabled={future.length === 0} onClick={redo} title="Redo (⇧⌘Z)">
           Redo
         </button>
-        <button className="tb-btn" onClick={resetAll} title="Reset all edits">
+        <button className={btn} onClick={resetAll} title="Reset all edits">
           Reset
         </button>
-        <button className="tb-btn" onClick={() => location.reload()} title="Open a different photo">
+        <button className={btn} onClick={() => location.reload()} title="Open a different photo">
           New
         </button>
-        <button className="tb-btn primary" onClick={() => setShowExport(true)}>
+        <button className={btnPrimary} onClick={() => setShowExport(true)}>
           Export
         </button>
       </div>
 
       {showExport && (
-        <div className="modal-backdrop" onClick={() => !busy && setShowExport(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Export Photo</h3>
-            <p className="modal-sub">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => !busy && setShowExport(false)}
+        >
+          <div
+            className="w-[340px] rounded-[10px] border border-border bg-panel px-[22px] py-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="m-0 mb-1">Export Photo</h3>
+            <p className="mb-4 mt-0 text-xs text-text-dim">
               Rendered at full resolution ({image.width}×{image.height}).
             </p>
-            <label className="modal-row">
+            <label className="my-3 flex items-center justify-between gap-3">
               <span>Format</span>
-              <select value={format} onChange={(e) => setFormat(e.target.value as Format)}>
+              <select
+                className="rounded border border-border bg-panel-2 px-2 py-1 text-text"
+                value={format}
+                onChange={(e) => setFormat(e.target.value as Format)}
+              >
                 {Object.entries(FORMATS).map(([v, l]) => (
                   <option key={v} value={v}>
                     {l}
@@ -102,9 +113,10 @@ export function Toolbar() {
               </select>
             </label>
             {format !== 'image/png' && (
-              <label className="modal-row">
+              <label className="my-3 flex items-center justify-between gap-3">
                 <span>Quality {Math.round(quality * 100)}%</span>
                 <input
+                  className="flex-1"
                   type="range"
                   min={0.4}
                   max={1}
@@ -114,11 +126,11 @@ export function Toolbar() {
                 />
               </label>
             )}
-            <div className="modal-actions">
-              <button className="tb-btn" onClick={() => setShowExport(false)} disabled={busy}>
+            <div className="mt-5 flex justify-end gap-2">
+              <button className={btn} onClick={() => setShowExport(false)} disabled={busy}>
                 Cancel
               </button>
-              <button className="tb-btn primary" onClick={doExport} disabled={busy}>
+              <button className={btnPrimary} onClick={doExport} disabled={busy}>
                 {busy ? 'Exporting…' : 'Download'}
               </button>
             </div>

@@ -99,12 +99,16 @@ export function CurveEditor() {
   };
 
   return (
-    <div className="curve-editor">
-      <div className="curve-tabs">
+    <div>
+      <div className="mb-2.5 flex gap-1.5">
         {(['rgb', 'red', 'green', 'blue'] as Channel[]).map((c) => (
           <button
             key={c}
-            className={`curve-tab ${channel === c ? 'active' : ''}`}
+            className={`flex-1 rounded border px-0 py-1 text-xs font-semibold ${
+              channel === c
+                ? 'border-[#555] bg-[#1a1a1a]'
+                : 'border-border bg-panel-2 text-text-dim'
+            }`}
             style={{ color: channel === c ? CH_COLOR[c] : undefined }}
             onClick={() => setChannel(c)}
           >
@@ -114,7 +118,7 @@ export function CurveEditor() {
       </div>
       <svg
         ref={svgRef}
-        className="curve-svg"
+        className="block aspect-square w-full touch-none rounded border border-border bg-[#141414]"
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         preserveAspectRatio="none"
         onPointerDown={handleBgDown}
@@ -124,11 +128,35 @@ export function CurveEditor() {
         {/* grid */}
         {[0.25, 0.5, 0.75].map((g) => (
           <g key={g}>
-            <line x1={g * SIZE} y1={0} x2={g * SIZE} y2={SIZE} className="curve-grid" />
-            <line x1={0} y1={g * SIZE} x2={SIZE} y2={g * SIZE} className="curve-grid" />
+            <line
+              x1={g * SIZE}
+              y1={0}
+              x2={g * SIZE}
+              y2={SIZE}
+              stroke="#2a2a2a"
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+            />
+            <line
+              x1={0}
+              y1={g * SIZE}
+              x2={SIZE}
+              y2={g * SIZE}
+              stroke="#2a2a2a"
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+            />
           </g>
         ))}
-        <line x1={0} y1={SIZE} x2={SIZE} y2={0} className="curve-diag" />
+        <line
+          x1={0}
+          y1={SIZE}
+          x2={SIZE}
+          y2={0}
+          stroke="#333"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
         <path d={lutPath} fill="none" stroke={CH_COLOR[channel]} strokeWidth={2} />
         {points.map((p, i) => (
           <circle
@@ -136,15 +164,20 @@ export function CurveEditor() {
             cx={p[0]}
             cy={SIZE - p[1]}
             r={6}
-            className="curve-point"
+            fill="#1a1a1a"
+            strokeWidth={2}
+            className="cursor-grab"
             stroke={CH_COLOR[channel]}
+            vectorEffect="non-scaling-stroke"
             onPointerDown={(e) => handlePointDown(e, i)}
             onPointerMove={handleMove}
             onPointerUp={(e) => handleUp(e, i)}
           />
         ))}
       </svg>
-      <div className="curve-hint">Click to add · drag off top/bottom to remove</div>
+      <div className="mt-1.5 text-center text-[11px] text-text-dim">
+        Click to add · drag off top/bottom to remove
+      </div>
     </div>
   );
 }
