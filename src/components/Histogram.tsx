@@ -46,7 +46,9 @@ export function Histogram() {
         ref={canvasRef}
         width={280}
         height={90}
-        className="block h-[90px] w-full rounded bg-[#141414]"
+        className="block h-[90px] w-full rounded-md bg-canvas ring-1 ring-border/60"
+        role="img"
+        aria-label="Live RGB histogram"
       />
     </div>
   );

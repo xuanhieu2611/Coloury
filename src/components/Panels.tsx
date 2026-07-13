@@ -12,7 +12,7 @@ import {
   type HslBand,
 } from '@/lib/recipe';
 import { groupLabel } from '@/lib/ui';
-
+import { IconChevron, IconReset } from './Icons';
 type ScalarKey =
   | 'exposure'
   | 'contrast'
@@ -95,34 +95,32 @@ function Section({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-border">
-      <div className="flex items-center justify-between pr-2.5">
+      <div className="flex items-center justify-between pr-2">
         <button
-          className="flex flex-1 items-center gap-2 border-none bg-transparent px-3.5 py-[11px] text-left text-xs font-semibold tracking-[0.4px] text-text uppercase"
+          type="button"
+          className="flex min-h-[40px] flex-1 items-center gap-2 border-none bg-transparent px-3.5 py-2.5 text-left text-[11px] font-semibold tracking-[0.06em] text-text uppercase transition-colors duration-150 hover:bg-panel-2/50 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px]"
           onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
         >
-          <span
-            className={`inline-block text-text-dim transition-transform duration-[120ms] ${
-              open ? 'rotate-90' : ''
-            }`}
-          >
-            ▸
-          </span>
+          <IconChevron open={open} />
           {title}
         </button>
         {onReset && (
           <button
-            className="border-none bg-transparent text-sm text-text-dim hover:text-text"
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border-none bg-transparent text-text-dim transition-colors duration-150 hover:bg-panel-2 hover:text-text focus-visible:outline-2 focus-visible:outline-ring"
             title={`Reset ${title}`}
+            aria-label={`Reset ${title}`}
             onClick={(e) => {
               e.stopPropagation();
               onReset();
             }}
           >
-            ⟲
+            <IconReset />
           </button>
         )}
       </div>
-      {open && <div className="px-3.5 pt-1 pb-3.5">{children}</div>}
+      {open && <div className="px-3.5 pt-0.5 pb-3.5">{children}</div>}
     </div>
   );
 }
@@ -140,12 +138,16 @@ function HslSection() {
 
   return (
     <>
-      <div className="mb-2.5 flex gap-[5px]">
+      <div className="mb-2.5 flex gap-1" role="tablist" aria-label="HSL color band">
         {HSL_BANDS.map((b) => (
           <button
             key={b}
-            className={`h-[22px] flex-1 rounded border-2 p-0 ${
-              band === b ? 'border-white' : 'border-transparent'
+            type="button"
+            role="tab"
+            aria-selected={band === b}
+            aria-label={b}
+            className={`h-6 flex-1 rounded-sm border-2 p-0 transition-[border-color,transform] duration-150 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-1 ${
+              band === b ? 'border-white scale-[1.04]' : 'border-transparent hover:border-white/40'
             }`}
             style={{ background: SWATCH[b] }}
             title={b}
@@ -153,7 +155,7 @@ function HslSection() {
           />
         ))}
       </div>
-      <div className="mb-1 font-semibold text-text capitalize">{band}</div>
+      <div className="mb-1 text-[12px] font-semibold capitalize text-text">{band}</div>
       {(['hue', 'saturation', 'luminance'] as const).map((f) => (
         <Slider
           key={f}

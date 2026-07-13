@@ -10,8 +10,8 @@ import {
   type Preset,
 } from '@/lib/presets';
 import { cloneRecipe } from '@/lib/recipe';
-import { btn, btnPrimary, chip, groupLabel } from '@/lib/ui';
-
+import { btn, btnPrimary, chip, field, groupLabel } from '@/lib/ui';
+import { IconClose } from './Icons';
 export function Presets() {
   const recipe = useEditor((s) => s.recipe);
   const setRecipe = useEditor((s) => s.setRecipe);
@@ -52,18 +52,28 @@ export function Presets() {
 
       <div className={`${groupLabel} mt-2.5 mb-1.5`}>Your presets</div>
       {userPresets.length === 0 && !naming && (
-        <div className="text-xs text-text-dim italic">No saved presets yet.</div>
+        <p className="m-0 text-xs text-text-dim">No saved presets yet. Save the current look below.</p>
       )}
       <div className="flex flex-wrap gap-1.5">
         {userPresets.map((p) => (
           <button key={p.id} className={`${chip} pr-1.5`} onClick={() => apply(p)} title={p.name}>
             <span>{p.name}</span>
             <span
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full text-sm leading-none text-text-dim hover:bg-[rgba(255,122,122,0.12)] hover:text-danger"
+              role="button"
+              tabIndex={0}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-text-dim transition-colors duration-150 hover:bg-[rgba(255,122,122,0.12)] hover:text-danger focus-visible:outline-2 focus-visible:outline-ring"
               title="Delete preset"
+              aria-label={`Delete ${p.name}`}
               onClick={(e) => remove(p.id, e)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setUserPresets(deleteUserPreset(p.id));
+                }
+              }}
             >
-              ×
+              <IconClose size={10} />
             </span>
           </button>
         ))}
@@ -72,10 +82,11 @@ export function Presets() {
       {naming ? (
         <div className="mt-3 flex items-center gap-1.5">
           <input
-            className="min-w-0 flex-1 rounded border border-border bg-panel-2 px-2 py-[5px] text-xs text-text outline-none focus:border-accent"
+            className={`${field} min-w-0 flex-1`}
             autoFocus
             placeholder="Preset name"
             value={name}
+            aria-label="Preset name"
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') save();
@@ -94,10 +105,10 @@ export function Presets() {
         </div>
       ) : (
         <button
-          className="mt-3 w-full rounded-md border border-dashed border-border bg-transparent py-[7px] text-xs text-text-dim hover:border-accent hover:text-text"
+          className="mt-3 w-full rounded-md border border-dashed border-border bg-transparent py-2 text-xs text-text-dim transition-[border-color,color] duration-150 hover:border-accent hover:text-text focus-visible:outline-2 focus-visible:outline-ring"
           onClick={() => setNaming(true)}
         >
-          + Save current as preset
+          Save current as preset
         </button>
       )}
     </div>

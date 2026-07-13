@@ -177,23 +177,39 @@ export function EditorCanvas() {
           onDone={() => setCropMode(false)}
         />
       ) : (
-        <div className="absolute bottom-4 left-1/2 z-[5] flex -translate-x-1/2 gap-2">
+        <div
+          className="absolute bottom-4 left-1/2 z-[5] flex -translate-x-1/2 gap-2"
+          role="toolbar"
+          aria-label="Compare and crop"
+        >
           <button className={compareBtn} title="Crop & transform" onClick={enterCrop}>
             Crop
           </button>
           <button
             className={`${compareBtn} ${splitOn ? compareBtnActive : ''}`}
             title="Split before/after"
+            aria-pressed={splitOn}
             onClick={() => setSplitOn((s) => !s)}
           >
             Split
           </button>
           <button
-            className={compareBtn}
+            className={`${compareBtn} ${showOriginal ? compareBtnActive : ''}`}
             title="Hold to view original"
+            aria-pressed={showOriginal}
             onPointerDown={() => setShowOriginal(true)}
             onPointerUp={() => setShowOriginal(false)}
             onPointerLeave={() => setShowOriginal(false)}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setShowOriginal(true);
+              }
+            }}
+            onKeyUp={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') setShowOriginal(false);
+            }}
+            onBlur={() => setShowOriginal(false)}
           >
             {showOriginal ? 'Original' : 'Hold to Compare'}
           </button>

@@ -13,20 +13,27 @@ export default function Home() {
 
   if (!image) {
     return (
-      <main className="flex h-screen items-center justify-center p-6">
-        <Uploader />
+      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-bg px-6 py-10">
+        {/* Ambient wash behind content — must stay z-0 so it never covers the uploader. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0 empty-wash" />
+        <div className="relative z-10">
+          <Uploader />
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="flex h-screen flex-col">
+    <main className="flex h-dvh flex-col">
       <Toolbar />
-      <div className="flex min-h-0 flex-1">
-        <div className="relative min-w-0 flex-1 bg-[#111]">
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <div className="relative min-h-[42vh] min-w-0 flex-1 bg-canvas md:min-h-0">
           <EditorCanvas />
         </div>
-        <aside className="w-80 shrink-0 overflow-x-hidden overflow-y-auto border-l border-border bg-panel">
+        <aside
+          className="max-h-[58vh] w-full shrink-0 overflow-x-hidden overflow-y-auto border-t border-border bg-panel md:max-h-none md:w-80 md:border-t-0 md:border-l"
+          aria-label="Edit controls"
+        >
           <AutoEdit />
           <Histogram />
           <Panels />

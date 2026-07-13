@@ -30,17 +30,23 @@ export function CropBar({
     }, true);
 
   return (
-    <div className="absolute bottom-3.5 left-1/2 z-[7] flex max-w-[calc(100%-24px)] -translate-x-1/2 flex-wrap items-center justify-center gap-[18px] rounded-[10px] border border-border bg-[rgba(28,28,28,0.94)] px-3.5 py-2.5">
+    <div
+      className="absolute bottom-3.5 left-1/2 z-[7] flex max-w-[calc(100%-24px)] -translate-x-1/2 flex-wrap items-center justify-center gap-4 rounded-[var(--radius-lg)] border border-border bg-[rgba(26,26,26,0.94)] px-3.5 py-2.5 shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+      role="toolbar"
+      aria-label="Crop and transform"
+    >
       <div className="flex items-center gap-2">
         <span className={groupLabel}>Aspect</span>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Aspect ratio">
           {ASPECT_PRESETS.map((p) => (
             <button
               key={p.label}
-              className={`rounded border px-2 py-1 text-[11px] ${
+              type="button"
+              aria-pressed={activeAspect === p.label}
+              className={`rounded-md border px-2 py-1.5 text-[11px] font-medium transition-[background,border-color] duration-150 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-1 ${
                 activeAspect === p.label
                   ? 'border-accent bg-accent-dim text-text'
-                  : 'border-border bg-panel-2 text-text-dim hover:text-text'
+                  : 'border-border bg-panel-2 text-text-dim hover:border-border-strong hover:text-text'
               }`}
               onClick={() =>
                 onAspect(p.label, p.ratio === 'original' ? imageAspect : p.ratio)
