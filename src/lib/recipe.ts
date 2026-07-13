@@ -66,6 +66,8 @@ export interface EditRecipe {
   vignetteFeather: number; // 0..100 (softness of the falloff; default 50)
   grain: number; // 0..100 (amount)
   grainSize: number; // 0..100 (coarseness; default 25)
+  fade: number; // 0..100 (lifted matte blacks — the film/faded "toe")
+  halation: number; // 0..100 (dreamy warm glow bleeding from highlights)
   crop: Crop;
 }
 
@@ -153,6 +155,8 @@ export function defaultRecipe(): EditRecipe {
     vignetteFeather: 50,
     grain: 0,
     grainSize: 25,
+    fade: 0,
+    halation: 0,
     crop: defaultCrop(),
   };
 }
@@ -183,6 +187,8 @@ export const PARAM_RANGE: Record<
   vignetteFeather: { min: 0, max: 100, step: 1, default: 50 },
   grain: { min: 0, max: 100, step: 1 },
   grainSize: { min: 0, max: 100, step: 1, default: 25 },
+  fade: { min: 0, max: 100, step: 1 },
+  halation: { min: 0, max: 100, step: 1 },
   // Straighten angle lives under recipe.crop; range here drives its slider.
   straighten: { min: -45, max: 45, step: 0.1 },
 };
@@ -209,6 +215,9 @@ const AI_SCALAR_KEYS = [
   'texture',
   'sharpening',
   'vignette',
+  'grain',
+  'fade',
+  'halation',
 ] as const;
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);

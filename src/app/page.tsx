@@ -7,6 +7,7 @@ import { Toolbar } from '@/components/Toolbar';
 import { Panels } from '@/components/Panels';
 import { Histogram } from '@/components/Histogram';
 import { AutoEdit } from '@/components/AutoEdit';
+import { Filters } from '@/components/Filters';
 
 export default function Home() {
   const image = useEditor((s) => s.image);
@@ -35,6 +36,7 @@ export default function Home() {
           aria-label="Edit controls"
         >
           <AutoEdit />
+          <Filters />
           <Histogram />
           <Panels />
         </aside>

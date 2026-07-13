@@ -68,6 +68,8 @@ uniform float uVigMid;         // 0..1 (falloff start)
 uniform float uVigFeather;     // 0..1 (falloff softness)
 uniform float uGrain;          // 0..1 (amount)
 uniform float uGrainSize;      // 0..1 (coarseness)
+uniform float uFade;           // 0..1 (lifted matte blacks)
+uniform float uHalation;       // 0..1 (warm highlight glow)
 uniform float uSeed;
 
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
@@ -241,6 +243,27 @@ vec3 sharpen(vec3 c) {
   return c + highpass * uSharpen * 2.0;
 }
 
+// ---- Halation: warm glow bleeding out of the highlights (film/dreamy look) ----
+// Blurs the source, keeps only its bright regions, tints them warm red-orange
+// (film's anti-halation dye leaks red), and screen-blends that glow back in.
+vec3 halation(vec3 c) {
+  if (uHalation <= 0.0) return c;
+  vec3 blur = srcBlur(9.0);
+  float hi = smoothstep(0.55, 1.0, luma(blur)); // soft highlight mask
+  vec3 glow = vec3(1.0, 0.55, 0.42) * hi * uHalation;
+  // Screen blend: brightens without clipping as hard as additive.
+  return 1.0 - (1.0 - clamp(c, 0.0, 1.0)) * (1.0 - glow);
+}
+
+// ---- Fade: lift the black point toward a matte film "toe" ----
+// Remaps 0..1 so the darkest value floors at the lift amount while white stays —
+// lower contrast, milky shadows, the signature faded-film / Tezza look.
+vec3 fade(vec3 c) {
+  if (uFade <= 0.0) return c;
+  float lift = uFade * 0.16;
+  return c * (1.0 - lift) + lift;
+}
+
 // ---- 9. Vignette (amount + midpoint + feather) ----
 vec3 vignette(vec3 c) {
   if (uVignette == 0.0) return c;
@@ -281,6 +304,8 @@ void main() {
   c = splitTone(c);           // 7
   c = denoise(c);             // 7b (detail: noise reduction, before sharpen)
   c = sharpen(c);             // 8
+  c = halation(c);            // 8b (film glow off the highlights)
+  c = fade(c);                // 8c (lifted matte blacks)
   c = vignette(c);            // 9
   c = grain(c);               // 10
   fragColor = vec4(clamp(c, 0.0, 1.0), 1.0);

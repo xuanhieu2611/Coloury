@@ -23,6 +23,9 @@ const PROMPTED_KEYS = [
   'texture',
   'sharpening',
   'vignette',
+  'grain',
+  'fade',
+  'halation',
 ] as const;
 
 const KEY_NOTE: Partial<Record<(typeof PROMPTED_KEYS)[number], string>> = {
@@ -33,6 +36,9 @@ const KEY_NOTE: Partial<Record<(typeof PROMPTED_KEYS)[number], string>> = {
   clarity: 'midtone local contrast',
   texture: 'fine high-frequency detail',
   vignette: 'negative = darken edges, positive = lighten edges',
+  grain: 'film grain amount; keep subtle unless a vintage/film look is asked for',
+  fade: 'lifts blacks to a matte faded-film toe; use for vintage/film/aesthetic looks',
+  halation: 'warm dreamy glow bleeding from highlights; use sparingly for film/dreamy looks',
 };
 
 function scalarRangeLines(): string {

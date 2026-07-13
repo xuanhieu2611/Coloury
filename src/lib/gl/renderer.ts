@@ -125,6 +125,8 @@ export class Renderer {
       'uVigFeather',
       'uGrain',
       'uGrainSize',
+      'uFade',
+      'uHalation',
       'uSeed',
       'uSampO',
       'uSampU',
@@ -262,6 +264,8 @@ export class Renderer {
     gl.uniform1f(u['uVigFeather'], r.vignetteFeather / 100);
     gl.uniform1f(u['uGrain'], r.grain / 100);
     gl.uniform1f(u['uGrainSize'], r.grainSize / 100);
+    gl.uniform1f(u['uFade'], r.fade / 100);
+    gl.uniform1f(u['uHalation'], r.halation / 100);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }

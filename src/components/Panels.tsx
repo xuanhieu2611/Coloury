@@ -33,7 +33,9 @@ type ScalarKey =
   | 'vignetteMidpoint'
   | 'vignetteFeather'
   | 'grain'
-  | 'grainSize';
+  | 'grainSize'
+  | 'fade'
+  | 'halation';
 
 const LABEL: Record<ScalarKey, string> = {
   exposure: 'Exposure',
@@ -56,6 +58,8 @@ const LABEL: Record<ScalarKey, string> = {
   vignetteFeather: 'Feather',
   grain: 'Grain',
   grainSize: 'Grain Size',
+  fade: 'Fade',
+  halation: 'Halation',
 };
 
 function ScalarSlider({ k }: { k: ScalarKey }) {
@@ -276,9 +280,15 @@ export function Panels() {
         title="Effects"
         defaultOpen={false}
         onReset={() =>
-          resetKeys(['vignette', 'vignetteMidpoint', 'vignetteFeather', 'grain', 'grainSize'])
+          resetKeys([
+            'vignette', 'vignetteMidpoint', 'vignetteFeather',
+            'grain', 'grainSize', 'fade', 'halation',
+          ])
         }
       >
+        <div className={`${groupLabel} mt-3 mb-0.5`}>Film</div>
+        <ScalarSlider k="fade" />
+        <ScalarSlider k="halation" />
         <div className={`${groupLabel} mt-3 mb-0.5`}>Vignette</div>
         <ScalarSlider k="vignette" />
         <ScalarSlider k="vignetteMidpoint" />
