@@ -69,12 +69,16 @@ export function Filters() {
     const target = lerpRecipe(defaultRecipe(), f.recipe, pct / 100);
     update((r) => {
       const crop = r.crop;
+      const overlays = r.overlays; // framing (stamp/leak/dust/border) is independent of the grade
+      const lut = r.lut; // a chosen film-sim LUT is independent of the grade too
       const merged = cloneRecipe(target);
       (Object.keys(merged) as (keyof typeof merged)[]).forEach((k) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (r as any)[k] = (merged as any)[k];
       });
       r.crop = crop;
+      r.overlays = overlays;
+      r.lut = lut;
     }, doCommit);
   };
 

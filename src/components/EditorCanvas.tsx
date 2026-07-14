@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Renderer } from '@/lib/gl/renderer';
+import { composeOverlays, computeFrame, drawOverlays } from '@/lib/overlays';
 import { useEditor } from '@/lib/store';
 import { computeHistogram, useHistogram } from '@/lib/histogram';
 import { defaultCrop, type Crop } from '@/lib/recipe';
@@ -11,6 +12,7 @@ import { CropBar, fitRectToRatio } from './CropBar';
 
 export function EditorCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const histCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number>(0);
@@ -61,6 +63,39 @@ export function EditorCanvas() {
       const canvas = canvasRef.current;
       if (!renderer || !canvas) return;
       renderer.render(recipe, showOriginal, split, cropMode);
+
+      // Overlays draw on a canvas layered over the GL output. Two cases:
+      //  - a border expands the frame → the overlay canvas composites the whole
+      //    framed result (border + image + leak/dust/stamp) and the GL canvas is
+      //    hidden beneath it (its pixels are still read for the histogram);
+      //  - no border → the overlay is the same size as the GL canvas and just
+      //    draws the leak/dust/stamp transparently on top of the visible GL image.
+      // Hidden while comparing to the original or cropping (they're an edit).
+      const oc = overlayRef.current;
+      const ov = recipe.overlays;
+      const showOverlays = !showOriginal && !cropMode;
+      const borderOn = ov.border.style !== 'none' && ov.border.size > 0;
+      if (oc) {
+        const octx = oc.getContext('2d');
+        if (octx) {
+          if (showOverlays && borderOn) {
+            const frame = computeFrame(canvas.width, canvas.height, ov.border);
+            oc.width = frame.outW;
+            oc.height = frame.outH;
+            octx.clearRect(0, 0, oc.width, oc.height);
+            composeOverlays(octx, canvas, ov);
+            canvas.style.opacity = '0';
+          } else {
+            oc.width = canvas.width;
+            oc.height = canvas.height;
+            octx.clearRect(0, 0, oc.width, oc.height);
+            if (showOverlays) {
+              drawOverlays(octx, { x: 0, y: 0, w: oc.width, h: oc.height }, ov);
+            }
+            canvas.style.opacity = '1';
+          }
+        }
+      }
 
       // Live histogram: downscale the GL canvas onto a small 2D canvas and bin it.
       if (!histCanvasRef.current) {
@@ -135,6 +170,11 @@ export function EditorCanvas() {
               cropMode ? '' : 'shadow-[0_4px_30px_rgba(0,0,0,0.5)]'
             }`}
             style={cropMode ? { transform: `rotate(${previewRotate}deg)` } : undefined}
+          />
+          <canvas
+            ref={overlayRef}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[3] h-full w-full object-contain"
           />
           {splitOn && !cropMode && (
             <div

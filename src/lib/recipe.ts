@@ -42,6 +42,66 @@ export interface Crop {
   orientation: number; // 90° quarter turns, 0..3 (clockwise)
 }
 
+// --- Overlays (Film-engine Phase 2) ----------------------------------------
+// Overlays are compositing layers that sit ON TOP of the WebGL output — they
+// are NOT shader color math. Rendered as a CSS/canvas layer for live preview
+// and composited onto a 2D canvas at export (see src/lib/overlays.ts). Kept as
+// a first-class recipe section so it stays the single contract.
+
+export type StampCorner = 'tl' | 'tr' | 'bl' | 'br';
+
+// A vintage-digicam date stamp — the orange corner timestamp. `text` holds the
+// literal characters to render (digits/spaces/apostrophe), resolved once when
+// the stamp is enabled (from EXIF DateTimeOriginal, else today) so export needs
+// no metadata: the recipe fully describes what to draw.
+export interface DateStamp {
+  enabled: boolean;
+  corner: StampCorner;
+  text: string;
+  color: string; // hex; classic amber default
+  size: number; // 0..100 relative to the frame's short edge
+}
+
+// Procedural light leak — a soft warm glow bled in from a frame edge/corner,
+// screen-blended over the image (the "film wasn't wound tight" look).
+export type LeakType = 'warm' | 'red' | 'golden';
+export type LeakPosition = 'top' | 'bottom' | 'left' | 'right' | 'corner';
+export interface LightLeak {
+  enabled: boolean;
+  type: LeakType;
+  position: LeakPosition;
+  strength: number; // 0..100
+}
+
+// Procedural dust specks + vertical scratches (analog wear). Deterministic from
+// a fixed seed so the live preview and export match exactly.
+export interface Dust {
+  enabled: boolean;
+  amount: number; // 0..100 (density of specks + scratches)
+}
+
+// A frame drawn AROUND the graded image — the output canvas expands to make room
+// (so nothing is cropped). Sizes are relative to the image's short edge.
+export type BorderStyle = 'none' | 'white' | 'black' | 'film' | 'polaroid';
+export interface Border {
+  style: BorderStyle;
+  size: number; // 0..100 thickness
+}
+
+export interface Overlays {
+  dateStamp: DateStamp;
+  lightLeak: LightLeak;
+  dust: Dust;
+  border: Border;
+}
+
+// 3D LUT film-sim stage (applied in-shader after split-tone, before effects).
+// `id` selects a built-in look (see src/lib/lut.ts); `amount` dials it 0..1.
+export interface LutSettings {
+  id: string;
+  amount: number; // 0..1
+}
+
 export interface EditRecipe {
   exposure: number; // stops, -5..5
   contrast: number; // -100..100
@@ -69,6 +129,8 @@ export interface EditRecipe {
   fade: number; // 0..100 (lifted matte blacks — the film/faded "toe")
   halation: number; // 0..100 (dreamy warm glow bleeding from highlights)
   crop: Crop;
+  overlays: Overlays;
+  lut: LutSettings;
 }
 
 export const HSL_BANDS: HslBand[] = [
@@ -102,6 +164,32 @@ const identityCurve = (): Point[] => [
 const zeroHslChannel = (): HslChannel => ({ hue: 0, saturation: 0, luminance: 0 });
 
 export const defaultCrop = (): Crop => ({ x: 0, y: 0, w: 1, h: 1, angle: 0, orientation: 0 });
+
+// Classic amber vintage-camera timestamp. Disabled by default; the date text is
+// filled in by the UI when the user turns it on.
+export const CLASSIC_STAMP_COLOR = '#ff7a1a';
+export const defaultDateStamp = (): DateStamp => ({
+  enabled: false,
+  corner: 'br',
+  text: '',
+  color: CLASSIC_STAMP_COLOR,
+  size: 50,
+});
+export const defaultLightLeak = (): LightLeak => ({
+  enabled: false,
+  type: 'warm',
+  position: 'right',
+  strength: 55,
+});
+export const defaultDust = (): Dust => ({ enabled: false, amount: 40 });
+export const defaultBorder = (): Border => ({ style: 'none', size: 50 });
+export const defaultOverlays = (): Overlays => ({
+  dateStamp: defaultDateStamp(),
+  lightLeak: defaultLightLeak(),
+  dust: defaultDust(),
+  border: defaultBorder(),
+});
+export const defaultLut = (): LutSettings => ({ id: 'none', amount: 1 });
 
 // A crop that changes nothing: full frame, no straighten, no rotation.
 export function isIdentityCrop(c: Crop): boolean {
@@ -158,6 +246,8 @@ export function defaultRecipe(): EditRecipe {
     fade: 0,
     halation: 0,
     crop: defaultCrop(),
+    overlays: defaultOverlays(),
+    lut: defaultLut(),
   };
 }
 
@@ -226,8 +316,9 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
  * Turn an untrusted partial recipe from the AI vision model into a complete,
  * range-valid `EditRecipe` (PRD 5.4: validate + clamp before applying). Starts
  * from defaults, copies only recognized numeric fields, and clamps each to its
- * `PARAM_RANGE` / band range. Unknown keys, NaN, strings, curves, and crop are
- * ignored — so a malformed model response degrades to "no-op", never a crash.
+ * `PARAM_RANGE` / band range. Unknown keys, NaN, strings, curves, crop, and
+ * overlays are ignored — so a malformed model response degrades to "no-op",
+ * never a crash. (The AI grades tone/color; overlays are a manual framing tool.)
  */
 export function recipeFromAi(partial: unknown): EditRecipe {
   const r = defaultRecipe();
@@ -290,5 +381,14 @@ export function normalizeRecipe(partial: Partial<EditRecipe> | null | undefined)
     hsl: { ...base.hsl, ...partial.hsl },
     splitToning: { ...base.splitToning, ...partial.splitToning },
     crop: { ...base.crop, ...partial.crop },
+    // Overlays are optional/newer than most stored recipes; deep-merge each
+    // sub-section so a preset saved before Phase 2 still comes out complete.
+    overlays: {
+      dateStamp: { ...base.overlays.dateStamp, ...partial.overlays?.dateStamp },
+      lightLeak: { ...base.overlays.lightLeak, ...partial.overlays?.lightLeak },
+      dust: { ...base.overlays.dust, ...partial.overlays?.dust },
+      border: { ...base.overlays.border, ...partial.overlays?.border },
+    },
+    lut: { ...base.lut, ...partial.lut },
   };
 }

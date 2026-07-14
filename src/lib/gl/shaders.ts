@@ -72,6 +72,12 @@ uniform float uFade;           // 0..1 (lifted matte blacks)
 uniform float uHalation;       // 0..1 (warm highlight glow)
 uniform float uSeed;
 
+// 3D LUT film sim (tiled 2D texture: N slices across, size N*N x N)
+uniform sampler2D uLut;
+uniform float uLutSize;        // N
+uniform float uLutAmount;      // 0..1 blend
+uniform bool  uUseLut;
+
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 
 float luma(vec3 c) { return dot(c, LUMA); }
@@ -234,6 +240,26 @@ vec3 denoise(vec3 c) {
   return c + (blur - orig) * uNoise;         // pull toward the smoothed source
 }
 
+// ---- 7c. 3D LUT film sim (arbitrary color map, trilinear-interpolated) ----
+// Reads one blue-slice of the tiled cube; r->x within the slice, g->y. The +0.5
+// half-texel and (N-1) scaling keep sampling on the cell centers.
+vec3 lutSlice(vec3 c, float slice) {
+  float N = uLutSize;
+  float u = (slice * N + c.r * (N - 1.0) + 0.5) / (N * N);
+  float v = (c.g * (N - 1.0) + 0.5) / N;
+  return texture(uLut, vec2(u, v)).rgb;
+}
+vec3 applyLut(vec3 col) {
+  if (!uUseLut) return col;
+  vec3 c = clamp(col, 0.0, 1.0);
+  float N = uLutSize;
+  float b = c.b * (N - 1.0);
+  float b0 = floor(b);
+  float b1 = min(b0 + 1.0, N - 1.0);
+  vec3 mapped = mix(lutSlice(c, b0), lutSlice(c, b1), b - b0); // trilinear (bilinear + blue lerp)
+  return mix(col, mapped, uLutAmount);
+}
+
 // ---- 8. Sharpening (unsharp mask on source neighborhood, radius-scaled) ----
 vec3 sharpen(vec3 c) {
   if (uSharpen <= 0.0) return c;
@@ -302,6 +328,7 @@ void main() {
   c = textureDetail(c);       // 5c (presence: fine detail)
   c = vibranceSaturation(c);  // 6
   c = splitTone(c);           // 7
+  c = applyLut(c);            // 7c (3D LUT film sim, after color grade)
   c = denoise(c);             // 7b (detail: noise reduction, before sharpen)
   c = sharpen(c);             // 8
   c = halation(c);            // 8b (film glow off the highlights)

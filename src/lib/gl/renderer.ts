@@ -2,6 +2,8 @@ import { VERTEX_SHADER, FRAGMENT_SHADER } from './shaders';
 import { buildCurveTextureData, isIdentityCurves } from '../curves';
 import { HSL_BANDS, type EditRecipe } from '../recipe';
 import { computeCropTransform, identityTransform } from '../crop';
+import { composeOverlays, overlaysActive, computeFrame } from '../overlays';
+import { buildLutTexture, LUT_SIZE } from '../lut';
 
 // Convert an HSV (h in degrees) to RGB for split-tone tint colors, matching
 // the shader's hsv2rgb so tinting is consistent.
@@ -34,6 +36,8 @@ export class Renderer {
   private program: WebGLProgram;
   private imageTex: WebGLTexture;
   private curveTex: WebGLTexture;
+  private lutTex: WebGLTexture;
+  private lutId = ''; // currently-uploaded LUT id (rebuild texture only on change)
   private uniforms: Record<string, WebGLUniformLocation | null> = {};
   private imgWidth = 1;
   private imgHeight = 1;
@@ -64,6 +68,7 @@ export class Renderer {
 
     this.imageTex = gl.createTexture()!;
     this.curveTex = gl.createTexture()!;
+    this.lutTex = gl.createTexture()!;
     this.cacheUniformLocations();
   }
 
@@ -128,6 +133,10 @@ export class Renderer {
       'uFade',
       'uHalation',
       'uSeed',
+      'uLut',
+      'uLutSize',
+      'uLutAmount',
+      'uUseLut',
       'uSampO',
       'uSampU',
       'uSampV',
@@ -149,6 +158,23 @@ export class Renderer {
     gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+
+  // Rebuild + upload the tiled LUT texture only when the selected LUT changes.
+  private updateLutTexture(id: string) {
+    if (id === this.lutId) return;
+    this.lutId = id;
+    const gl = this.gl;
+    const { data, width, height } = buildLutTexture(id);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.lutTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    // LINEAR gives bilinear r,g interpolation within a slice; the shader lerps
+    // the blue axis manually. CLAMP so edge slices don't wrap.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -194,6 +220,7 @@ export class Renderer {
     gl.uniform2f(u['uSampV'], tf.v[0], tf.v[1]);
 
     this.updateCurveTexture(recipe);
+    this.updateLutTexture(recipe.lut.id);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
@@ -201,6 +228,10 @@ export class Renderer {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.curveTex);
     gl.uniform1i(u['uCurveLut'], 1);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.lutTex);
+    gl.uniform1i(u['uLut'], 2);
+    gl.uniform1f(u['uLutSize'], LUT_SIZE);
 
     // Texel is in *source* space — spatial ops (sharpen) sample the source.
     gl.uniform2f(u['uTexel'], 1 / this.imgWidth, 1 / this.imgHeight);
@@ -267,6 +298,10 @@ export class Renderer {
     gl.uniform1f(u['uFade'], r.fade / 100);
     gl.uniform1f(u['uHalation'], r.halation / 100);
 
+    const lutOn = r.lut.id !== 'none' && r.lut.amount > 0;
+    gl.uniform1i(u['uUseLut'], lutOn ? 1 : 0);
+    gl.uniform1f(u['uLutAmount'], r.lut.amount);
+
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
@@ -274,6 +309,7 @@ export class Renderer {
     const gl = this.gl;
     gl.deleteTexture(this.imageTex);
     gl.deleteTexture(this.curveTex);
+    gl.deleteTexture(this.lutTex);
     gl.deleteProgram(this.program);
   }
 }
@@ -385,8 +421,24 @@ export async function exportImage(
   const renderer = new Renderer(canvas);
   renderer.setImage(effective);
   renderer.render(recipe);
+
+  // Composite overlays (border/frame, light leak, dust, date stamp) onto a 2D
+  // canvas at full output size so they scale with the export. A border EXPANDS
+  // the output around the graded image (nothing is cropped). 2D canvases aren't
+  // bound by MAX_TEXTURE_SIZE, so the frame padding can't hit the GPU cap.
+  let outCanvas: HTMLCanvasElement = canvas;
+  if (overlaysActive(recipe.overlays)) {
+    const frame = computeFrame(canvas.width, canvas.height, recipe.overlays.border);
+    const composited = document.createElement('canvas');
+    composited.width = frame.outW;
+    composited.height = frame.outH;
+    const ctx = composited.getContext('2d')!;
+    composeOverlays(ctx, canvas, recipe.overlays);
+    outCanvas = composited;
+  }
+
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, format, quality),
+    outCanvas.toBlob(resolve, format, quality),
   );
   renderer.dispose();
   if (!blob) throw new Error('Export failed to produce an image.');

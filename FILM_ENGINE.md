@@ -1,4 +1,11 @@
-# Film-Emulation Engine — roadmap (deferred)
+# Film-Emulation Engine — roadmap
+
+> **Status: Phase 1 + Phase 2 COMPLETE.** All steps below (overlay scaffold, date
+> stamp, light leaks, dust/scratches, borders/frames, and the 3D LUT stage) are
+> built and pixel-verified. This file is kept as the design record; the
+> "deferred"/"remaining" framing below is historical. Future work: real `.cube`
+> LUT uploads, curated leak/dust texture packs, and monetization gating.
+
 
 The aesthetic direction: make Coloury the app a Pinterest/Instagram teen reaches for
 to turn a phone photo into something that looks shot on a vintage digicam, a Canon,
@@ -17,6 +24,60 @@ asked to capture for a future session.
   intensity slider** (Tezza-style strength via `lerpRecipe`).
 
 Everything above stays inside the recipe/shader contract — no compositing, no overlays.
+
+## Phase 2 progress
+
+- **✅ Step 1 — overlay compositing scaffold (the enabler): built & verified.**
+  `recipe.overlays` is now a first-class recipe section (`src/lib/recipe.ts`:
+  `Overlays`/`DateStamp`, `defaultOverlays()`), backward-compatible through
+  `normalizeRecipe` (deep-merges the date stamp) and ignored by `recipeFromAi`
+  (overlays are a manual framing tool, not AI-graded). Chosen implementation is
+  **option (a)**: a CSS/2D overlay canvas layered over the WebGL canvas for live
+  preview (`EditorCanvas`), and **export-time canvas-2D compositing** in
+  `exportImage` (draws the GL result onto a 2D canvas at full output dims, then
+  `drawOverlays`). Shared draw path lives in `src/lib/overlays.ts` so preview ==
+  export. Filters preserve `overlays` like they preserve `crop`.
+- **✅ Step 2 — date stamp: built & verified.** Vintage-digicam orange
+  `'YY MM DD` timestamp, drawn from **7-segment glyphs** (no bundled font, scales
+  to any export size). Params under `recipe.overlays.dateStamp`: `enabled`,
+  `corner` (tl/tr/bl/br), `text` (literal chars, auto-filled from EXIF
+  `DateTimeOriginal` or today on first enable), `color` (classic amber `#ff7a1a`),
+  `size`. UI: a new **Overlays** panel section (`Panels.tsx` `DateStampSection`).
+  Verified with pixels: overlay canvas draws ~4966 amber `[255,118,25]` pixels
+  anchored to the chosen corner (moves tl↔br correctly); the exported JPEG carries
+  1239 tight-LED-amber pixels in the right corner (0 elsewhere — the warm gradient
+  is excluded by a strict threshold); undo reverts overlay edits (they're on the
+  history stack); build + typecheck clean.
+
+- **✅ Step 3 — light leaks + dust/scratches: built & verified.** Both
+  procedural (no binary assets), deterministic (fixed-seed PRNG so preview ==
+  export). Light leak = an edge/corner radial gradient (warm/red/golden) screen-
+  blended over the image (`recipe.overlays.lightLeak = {enabled,type,position,
+  strength}`); verified warm pixels appear at the chosen edge. Dust = dark specks
+  (`multiply`) + near-vertical bright scratches (`screen`), density via
+  `recipe.overlays.dust = {enabled,amount}`; verified specks/scratches render.
+- **✅ Step 4 — borders/frames: built & verified.** `recipe.overlays.border =
+  {style,size}` with styles `white`/`black`/`film`(sprocket holes)/`polaroid`
+  (thick bottom lip). The output canvas **EXPANDS** around the image (nothing
+  cropped) — decided per the doc's open question. `computeFrame()` returns the
+  expanded dims + image region; `composeOverlays()` draws frame bg + sprockets +
+  image + overlays. Preview composites onto the overlay canvas (GL canvas hidden
+  beneath); export composites onto a 2D canvas (no `MAX_TEXTURE_SIZE` limit, so
+  frame padding can't hit the GPU cap). Verified: Polaroid preview & export both
+  1296×1002 off-white; film 1296×944 with sprocket-hole pixels on the bar.
+- **✅ Step 5 — 3D LUT film-sim stage: built & verified.** A real LUT stage in the
+  shader (`applyLut`, after split-tone, before effects) sampling a **tiled 2D LUT
+  texture** (N=17 cube, N slices across, trilinear = bilinear-in-slice + blue
+  lerp) on `TEXTURE2`, blended by `recipe.lut = {id, amount}`. LUTs are
+  **self-authored & procedurally generated** into the texture (`src/lib/lut.ts` —
+  none/Kodak Warm/Teal·Orange/B&W Film/Faded Retro); no proprietary `.cube` files
+  (licensing). Texture rebuilt only on id change. Verified: B&W → center pixel
+  R=G=B `[95,95,95]`; teal-orange shifts blue +7, Kodak warms red +12; `none` and
+  amount 0 are no-ops. Swap `TRANSFORMS`/data source for real `.cube` later
+  without touching the shader.
+
+**All Phase 2 steps complete.** Text below is the original design spec, retained
+for reference.
 
 ## Phase 2 — the deferred work (user picked ALL of these)
 
