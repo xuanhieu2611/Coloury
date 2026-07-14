@@ -32,11 +32,14 @@ export default function Home() {
           <EditorCanvas />
         </div>
         <aside
-          className="max-h-[58vh] w-full shrink-0 overflow-x-hidden overflow-y-auto border-t border-border bg-panel md:max-h-none md:w-80 md:border-t-0 md:border-l"
+          className="max-h-[58vh] w-full shrink-0 overflow-x-hidden overflow-y-auto border-t border-border bg-panel md:max-h-none md:w-[336px] md:border-t-0 md:border-l"
           aria-label="Edit controls"
         >
-          <AutoEdit />
-          <Filters />
+          {/* Creative zone — raised slab that sits above the technical stack. */}
+          <div className="surface-raised border-b border-border">
+            <AutoEdit />
+            <Filters />
+          </div>
           <Histogram />
           <Panels />
         </aside>

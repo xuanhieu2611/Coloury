@@ -41,15 +41,32 @@ export function Histogram() {
   }, [data]);
 
   return (
-    <div className="border-b border-border px-3.5 py-2.5">
-      <canvas
-        ref={canvasRef}
-        width={280}
-        height={90}
-        className="block h-[90px] w-full rounded-md bg-canvas ring-1 ring-border/60"
-        role="img"
-        aria-label="Live RGB histogram"
-      />
+    <div className="border-b border-border px-3.5 pt-3 pb-3.5">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="section-eyebrow">Histogram</span>
+        <div className="flex items-center gap-2" aria-hidden>
+          {[
+            ['R', '#ff5050'],
+            ['G', '#4bd06a'],
+            ['B', '#5a8cff'],
+          ].map(([ch, c]) => (
+            <span key={ch} className="flex items-center gap-1 font-[family-name:var(--font-mono)] text-[9px] text-text-dim">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
+              {ch}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-md bg-canvas ring-1 ring-border/70 shadow-[var(--shadow-raised)]">
+        <canvas
+          ref={canvasRef}
+          width={280}
+          height={78}
+          className="block h-[78px] w-full"
+          role="img"
+          aria-label="Live RGB histogram"
+        />
+      </div>
     </div>
   );
 }

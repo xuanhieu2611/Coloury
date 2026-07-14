@@ -36,13 +36,13 @@ export function Uploader() {
   return (
     <div className="flex w-[min(560px,92vw)] flex-col items-center gap-8">
       <div className="text-center">
-        <h1 className={`${brandWordmark} text-[42px] leading-none sm:text-[48px]`}>Coloury</h1>
+        <h1 className={`${brandWordmark} text-[46px] leading-none sm:text-[54px]`}>Coloury</h1>
         <div
-          className={`spectrum-bar mx-auto mt-3 w-28 transition-[width,box-shadow] duration-300 ease-[var(--ease-out)] ${
-            dragOver ? 'spectrum-bar-glow w-40' : ''
+          className={`spectrum-bar spectrum-bar-glow mx-auto mt-3.5 transition-[width] duration-300 ease-[var(--ease-out)] ${
+            dragOver ? 'w-44' : 'w-32'
           }`}
         />
-        <p className="mt-4 max-w-[28ch] text-[15px] leading-snug text-text-dim">
+        <p className="mt-5 max-w-[30ch] text-[15px] leading-snug text-text-dim">
           Drop a photo. Grade it by hand or let Auto Edit set the look.
         </p>
       </div>
@@ -52,10 +52,10 @@ export function Uploader() {
         tabIndex={0}
         aria-label="Upload a photo"
         aria-busy={loading}
-        className={`group flex h-[280px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-[12px] border border-dashed px-6 transition-[border-color,background,transform] duration-200 ease-[var(--ease-out)] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${
+        className={`group flex h-[280px] w-full cursor-pointer flex-col items-center justify-center gap-3.5 rounded-[14px] border border-dashed px-6 shadow-[var(--shadow-raised)] transition-[border-color,background,transform,box-shadow] duration-200 ease-[var(--ease-out)] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${
           dragOver
-            ? 'scale-[1.01] border-accent bg-[#1a2430]'
-            : 'border-border-strong bg-panel hover:border-accent hover:bg-[#1a1f26]'
+            ? 'scale-[1.01] border-accent bg-[#141d29] shadow-[0_0_0_4px_rgba(107,179,255,0.12),var(--shadow-pop)]'
+            : 'border-border-strong bg-panel-raised hover:border-accent/70 hover:bg-[#161a20]'
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -82,11 +82,15 @@ export function Uploader() {
           hidden
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
-        <IconUpload
-          className={`text-text-dim transition-colors duration-150 group-hover:text-accent ${
-            dragOver ? 'text-accent' : ''
+        <span
+          className={`inline-flex h-14 w-14 items-center justify-center rounded-full ring-1 transition-[color,background,box-shadow] duration-150 ${
+            dragOver
+              ? 'bg-accent/15 text-accent ring-accent/40'
+              : 'bg-panel-2/60 text-text-dim ring-border-strong group-hover:text-accent group-hover:ring-accent/40'
           }`}
-        />
+        >
+          <IconUpload size={26} />
+        </span>
         <div className="text-center">
           <div className="text-[15px] font-medium text-text">
             {loading ? 'Opening photo…' : dragOver ? 'Release to open' : 'Drop a photo here'}

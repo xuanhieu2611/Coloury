@@ -5,7 +5,10 @@ import { exportImage, planExport } from '@/lib/gl/renderer';
 import { useEditor } from '@/lib/store';
 import { summarizeExif } from '@/lib/exif';
 import { brandWordmark, btn, btnPrimary } from '@/lib/ui';
-import { IconSpinner } from './Icons';
+import { IconSpinner, IconUndo, IconRedo, IconExport } from './Icons';
+
+const iconBtn =
+  'inline-flex h-8 w-8 items-center justify-center rounded-md text-text-dim transition-[background,color,transform] duration-150 ease-[var(--ease-out)] hover:enabled:bg-panel-2 hover:enabled:text-text active:enabled:translate-y-px disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2';
 
 const FORMATS = {
   'image/jpeg': 'JPEG',
@@ -105,45 +108,36 @@ export function Toolbar() {
   };
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border bg-panel px-4">
-      <div className="flex min-w-0 items-center gap-3">
+    <header className="flex h-[52px] shrink-0 items-center justify-between gap-4 border-b border-border bg-panel px-4 shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset]">
+      <div className="flex min-w-0 items-center gap-3.5">
         <div className="flex shrink-0 flex-col gap-1">
           <span className={`${brandWordmark} text-[15px] leading-none`}>Coloury</span>
-          <span className="spectrum-bar w-10" aria-hidden />
+          <span className="spectrum-bar w-full" aria-hidden />
         </div>
-        <span className="hidden min-w-0 truncate text-xs text-text-dim lg:inline">
-          {image.name}
-          <span className="mx-1.5 text-border-strong">·</span>
-          {image.width}×{image.height}
-          <span className="mx-1.5 text-border-strong">·</span>
-          {formatBytes(image.fileSize)}
+        <span className="hidden h-6 w-px shrink-0 bg-border lg:block" aria-hidden />
+        <span className="hidden min-w-0 items-center truncate text-xs text-text-dim lg:flex">
+          <span className="truncate text-text/85">{image.name}</span>
+          <span className="mx-2 text-border-strong">·</span>
+          <span className="font-[family-name:var(--font-mono)] tabular-nums">{image.width}×{image.height}</span>
+          <span className="mx-2 text-border-strong">·</span>
+          <span className="font-[family-name:var(--font-mono)] tabular-nums">{formatBytes(image.fileSize)}</span>
           {image.exif && summarizeExif(image.exif) && (
             <>
-              <span className="mx-1.5 text-border-strong">·</span>
+              <span className="mx-2 text-border-strong">·</span>
               <span className="text-text-dim/80">{summarizeExif(image.exif)}</span>
             </>
           )}
         </span>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5" role="toolbar" aria-label="Edit actions">
-        <button
-          className={btn}
-          disabled={past.length === 0}
-          onClick={undo}
-          title="Undo (⌘Z)"
-          aria-label="Undo"
-        >
-          Undo
-        </button>
-        <button
-          className={btn}
-          disabled={future.length === 0}
-          onClick={redo}
-          title="Redo (⇧⌘Z)"
-          aria-label="Redo"
-        >
-          Redo
-        </button>
+      <div className="flex shrink-0 items-center gap-1" role="toolbar" aria-label="Edit actions">
+        <div className="flex items-center rounded-lg border border-border bg-panel-2/40 p-0.5 shadow-[var(--shadow-raised)]">
+          <button className={iconBtn} disabled={past.length === 0} onClick={undo} title="Undo (⌘Z)" aria-label="Undo">
+            <IconUndo />
+          </button>
+          <button className={iconBtn} disabled={future.length === 0} onClick={redo} title="Redo (⇧⌘Z)" aria-label="Redo">
+            <IconRedo />
+          </button>
+        </div>
         <button className={btn} onClick={resetAll} title="Reset all edits" aria-label="Reset all edits">
           Reset
         </button>
@@ -156,6 +150,7 @@ export function Toolbar() {
           New
         </button>
         <button className={`${btnPrimary} ml-1`} onClick={() => setShowExport(true)}>
+          <IconExport />
           Export
         </button>
       </div>

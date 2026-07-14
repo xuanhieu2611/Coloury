@@ -102,7 +102,9 @@ function Section({
       <div className="flex items-center justify-between pr-2">
         <button
           type="button"
-          className="flex min-h-[40px] flex-1 items-center gap-2 border-none bg-transparent px-3.5 py-2.5 text-left text-[11px] font-semibold tracking-[0.06em] text-text uppercase transition-colors duration-150 hover:bg-panel-2/50 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px]"
+          className={`flex min-h-[42px] flex-1 items-center gap-2 border-none bg-transparent px-3.5 py-2.5 text-left font-[family-name:var(--font-mono)] text-[10.5px] tracking-[0.14em] uppercase transition-colors duration-150 hover:bg-panel-2/40 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px] ${
+            open ? 'text-text' : 'text-text-dim'
+          }`}
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
         >

@@ -46,9 +46,16 @@ export function AutoEdit() {
   const current = active >= 0 ? looks[active] : null;
 
   return (
-    <section className="border-b border-border bg-linear-to-b from-[#1e2836] from-0% to-panel to-70% px-3.5 py-3.5">
-      <div className="mb-2.5 flex items-center gap-2">
-        <IconSpark className="text-accent" />
+    <section className="relative border-b border-border/70 px-3.5 py-3.5">
+      {/* Signature accent glow — marks Auto Edit as the primary creative action. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_70%_100%_at_20%_0%,rgba(107,179,255,0.14),transparent_70%)]"
+      />
+      <div className="relative mb-2.5 flex items-center gap-2">
+        <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md bg-accent/15 text-accent ring-1 ring-accent/25">
+          <IconSpark />
+        </span>
         <h2 className="m-0 text-[13px] font-semibold tracking-tight text-text">Auto Edit</h2>
       </div>
 
@@ -57,7 +64,7 @@ export function AutoEdit() {
       </label>
       <input
         id={styleId}
-        className={`${field} mb-2`}
+        className={`${field} relative mb-2`}
         placeholder="Optional look — e.g. warm and moody"
         value={style}
         disabled={busy}
@@ -67,7 +74,7 @@ export function AutoEdit() {
         }}
       />
 
-      <div className="flex gap-1.5">
+      <div className="relative flex gap-1.5">
         <button
           className={`${btnPrimary} min-h-[34px] flex-1`}
           disabled={busy}

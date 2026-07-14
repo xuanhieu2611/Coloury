@@ -1,30 +1,41 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-bg: #111111;
-  --color-canvas: #0a0a0a;
-  --color-panel: #1a1a1a;
-  --color-panel-2: #242424;
-  --color-panel-hover: #2c2c2c;
-  --color-border: #2e2e2e;
-  --color-border-strong: #3d3d3d;
-  --color-text: #ececec;
-  --color-text-dim: #909090;
+  /* Layered cool-charcoal ramp — a colourist's monitor reads neutral-cool, not
+     flat true-grey. Each step is a deliberate elevation: well → frame → rail →
+     raised surface → hover. */
+  --color-canvas: #070809;
+  --color-bg: #0e0f12;
+  --color-panel: #16171b;
+  --color-panel-raised: #1c1e23;
+  --color-panel-2: #22242a;
+  --color-panel-hover: #2a2d34;
+  --color-border: #282a30;
+  --color-border-strong: #3a3d45;
+  --color-text: #eef0f3;
+  --color-text-dim: #8c919b;
   --color-accent: #6bb3ff;
-  --color-accent-dim: #3a6fa8;
+  --color-accent-dim: #35618f;
   --color-accent-warm: #ffb454;
-  --color-track: #333333;
+  --color-track: #34363d;
   --color-danger: #ff8a8a;
   --color-danger-soft: #ff6b6b;
   --color-ring: #6bb3ff;
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-brand), var(--font-ui), ui-sans-serif, sans-serif;
   --font-mono: var(--font-data), ui-monospace, monospace;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 11px;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 150ms;
   --duration-med: 220ms;
+  /* Elevation: soft, hue-tinted shadows (never pure black) + a 1px top
+     highlight for material edge refraction on raised dark surfaces. */
+  --shadow-raised: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+    0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.55),
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 @layer base {
@@ -37,10 +48,10 @@
     margin: 0;
     padding: 0;
     height: 100%;
-    background: #111111;
-    background: var(--color-bg, #111111);
-    color: #ececec;
-    color: var(--color-text, #ececec);
+    background: #0e0f12;
+    background: var(--color-bg, #0e0f12);
+    color: #eef0f3;
+    color: var(--color-text, #eef0f3);
     font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.45;
@@ -143,6 +154,22 @@
     background: #fff;
     border-radius: 2px;
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Raised feature surface — sits one elevation above the rail, with a hairline
+     top highlight so the "creative" zone reads as a distinct material slab. */
+  .surface-raised {
+    background: var(--color-panel-raised);
+    box-shadow: var(--shadow-raised);
+  }
+
+  /* Section header micro-caps — one shared type voice for panel headings. */
+  .section-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
   }
 
   /* Signature: full spectrum strip — colourist's reference bar. */

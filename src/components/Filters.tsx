@@ -88,12 +88,14 @@ export function Filters() {
   const shown = FILTERS.filter((f) => f.category === category);
 
   return (
-    <section className="border-b border-border px-3.5 py-3.5">
+    <section className="px-3.5 py-3.5">
       <div className="mb-2.5 flex items-center gap-2">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="text-accent" aria-hidden>
-          <circle cx="9" cy="9" r="5" stroke="currentColor" strokeWidth="1.7" />
-          <circle cx="15" cy="15" r="5" stroke="currentColor" strokeWidth="1.7" opacity="0.6" />
-        </svg>
+        <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md bg-accent/15 text-accent ring-1 ring-accent/25">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle cx="9" cy="9" r="5" stroke="currentColor" strokeWidth="1.9" />
+            <circle cx="15" cy="15" r="5" stroke="currentColor" strokeWidth="1.9" opacity="0.6" />
+          </svg>
+        </span>
         <h2 className="m-0 text-[13px] font-semibold tracking-tight text-text">Filters</h2>
       </div>
 
