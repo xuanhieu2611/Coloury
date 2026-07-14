@@ -8,6 +8,7 @@ import { Panels } from '@/components/Panels';
 import { Histogram } from '@/components/Histogram';
 import { AutoEdit } from '@/components/AutoEdit';
 import { Filters } from '@/components/Filters';
+import { Account } from '@/components/Account';
 
 export default function Home() {
   const image = useEditor((s) => s.image);
@@ -17,6 +18,9 @@ export default function Home() {
       <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-bg px-6 py-10">
         {/* Ambient wash behind content — must stay z-0 so it never covers the uploader. */}
         <div aria-hidden className="pointer-events-none absolute inset-0 z-0 empty-wash" />
+        <div className="absolute right-4 top-4 z-20">
+          <Account />
+        </div>
         <div className="relative z-10">
           <Uploader />
         </div>

@@ -5,7 +5,11 @@ import { loadImageFile, useEditor } from '@/lib/store';
 import { brandWordmark } from '@/lib/ui';
 import { IconUpload } from './Icons';
 
-const ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
+// RAW extensions are listed explicitly — the OS rarely reports a MIME type for
+// them, so an extension allowlist is what actually lets the picker select them.
+const RAW_EXTS =
+  '.arw,.sr2,.srf,.cr2,.cr3,.crw,.nef,.nrw,.dng,.raf,.rw2,.orf,.pef,.srw,.3fr,.erf,.kdc,.dcr,.mos,.mrw,.x3f,.iiq,.rwl,.raw';
+const ACCEPT = `image/jpeg,image/png,image/webp,image/heic,image/heif,${RAW_EXTS}`;
 
 export function Uploader() {
   const setImage = useEditor((s) => s.setImage);
@@ -96,7 +100,7 @@ export function Uploader() {
             {loading ? 'Opening photo…' : dragOver ? 'Release to open' : 'Drop a photo here'}
           </div>
           <div className="mt-1 text-xs text-text-dim">
-            or click to browse — JPEG, PNG, WebP, HEIC
+            or click to browse — JPEG, PNG, WebP, HEIC, RAW
           </div>
         </div>
       </div>

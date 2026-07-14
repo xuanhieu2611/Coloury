@@ -1,9 +1,13 @@
 import { create } from 'zustand';
 import { cloneRecipe, defaultRecipe, type EditRecipe } from './recipe';
 import { parseExif, type ExifData } from './exif';
+import { decodeRaw, isRaw } from './raw';
 
 export interface LoadedImage {
-  element: HTMLImageElement; // full-resolution decoded image
+  // Full-resolution decoded source. An <img> for JPEG/PNG/WebP/HEIC; a <canvas>
+  // for RAW (LibRaw decodes to pixels, not an <img>). Both satisfy the
+  // renderer's `ImageSource` (TexImageSource) contract used for export.
+  element: HTMLImageElement | HTMLCanvasElement;
   preview: HTMLCanvasElement; // downsampled (<= MAX_PREVIEW) for live editing
   name: string;
   width: number;
@@ -153,6 +157,29 @@ function decodeImage(url: string): Promise<HTMLImageElement> {
  * Also parses EXIF (JPEG only) for the camera/lens/exposure readout (PRD 4.1).
  */
 export async function loadImageFile(file: File): Promise<LoadedImage> {
+  // RAW files (ARW/CR2/NEF/DNG/…) don't decode via <img>; LibRaw (wasm) turns
+  // the sensor data into a full-res RGBA canvas which then flows through the
+  // identical edit/export pipeline. EXIF is mapped from LibRaw's metadata.
+  if (isRaw(file)) {
+    let decoded;
+    try {
+      decoded = await decodeRaw(file);
+    } catch {
+      throw new Error(
+        `Could not decode ${file.name}. It may be an unsupported or corrupt RAW file.`,
+      );
+    }
+    const { canvas: element, width: w, height: h, exif } = decoded;
+    const scale = Math.min(1, MAX_PREVIEW / Math.max(w, h));
+    const pw = Math.max(1, Math.round(w * scale));
+    const ph = Math.max(1, Math.round(h * scale));
+    const preview = document.createElement('canvas');
+    preview.width = pw;
+    preview.height = ph;
+    preview.getContext('2d')!.drawImage(element, 0, 0, pw, ph);
+    return { element, preview, name: file.name, width: w, height: h, fileSize: file.size, exif };
+  }
+
   const urls: string[] = [];
   const objectUrl = (blob: Blob) => {
     const u = URL.createObjectURL(blob);

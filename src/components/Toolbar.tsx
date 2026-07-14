@@ -6,6 +6,7 @@ import { useEditor } from '@/lib/store';
 import { summarizeExif } from '@/lib/exif';
 import { brandWordmark, btn, btnPrimary } from '@/lib/ui';
 import { IconSpinner, IconUndo, IconRedo, IconExport } from './Icons';
+import { Account } from './Account';
 
 const iconBtn =
   'inline-flex h-8 w-8 items-center justify-center rounded-md text-text-dim transition-[background,color,transform] duration-150 ease-[var(--ease-out)] hover:enabled:bg-panel-2 hover:enabled:text-text active:enabled:translate-y-px disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2';
@@ -153,6 +154,8 @@ export function Toolbar() {
           <IconExport />
           Export
         </button>
+        <span className="ml-1 hidden h-6 w-px shrink-0 bg-border sm:block" aria-hidden />
+        <Account />
       </div>
 
       {showExport && (
