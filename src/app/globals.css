@@ -214,6 +214,23 @@
     animation: pulse-soft 1.4s var(--ease-out) infinite;
   }
 
+  /* Advanced cockpit reveal — motivated fade+rise when the pro panels unhide.
+     Movement collapses under the global reduced-motion reset above. */
+  @keyframes reveal-panels {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-reveal-panels {
+    animation: reveal-panels var(--duration-med) var(--ease-out);
+  }
+
   @keyframes spin {
     to {
       transform: rotate(360deg);

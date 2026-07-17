@@ -19,6 +19,9 @@ export function EditorCanvas() {
   const [showOriginal, setShowOriginal] = useState(false);
   const [splitOn, setSplitOn] = useState(false);
   const [splitFrac, setSplitFrac] = useState(0.5);
+  // One-shot before→after reveal wipe (null = idle). Fraction of the frame still
+  // showing the original: animates 1 → 0 so the edit wipes in left-to-right.
+  const [revealFrac, setRevealFrac] = useState<number | null>(null);
   const [cropMode, setCropMode] = useState(false);
   const [aspect, setAspect] = useState<{ label: string; ratio: number | null }>({
     label: 'Free',
@@ -30,6 +33,7 @@ export function EditorCanvas() {
   const recipe = useEditor((s) => s.recipe);
   const update = useEditor((s) => s.update);
   const commit = useEditor((s) => s.commit);
+  const reveal = useEditor((s) => s.reveal);
   const setHistogram = useHistogram((s) => s.set);
 
   const imageAspect = image ? image.width / image.height : 1;
@@ -52,9 +56,33 @@ export function EditorCanvas() {
     };
   }, [image]);
 
+  // A one-shot reveal wipe (when a filter is tapped) takes precedence over the
+  // manual split slider. In crop mode neither applies.
+  const split = cropMode ? null : revealFrac != null ? revealFrac : splitOn ? splitFrac : null;
+
+  // Play the before→after wipe when the store's `reveal` nonce bumps. Honors
+  // prefers-reduced-motion (skips the animation, just shows the result).
+  useEffect(() => {
+    if (!reveal || cropMode) return; // reveal starts at 0 → no wipe on mount
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    setSplitOn(false);
+    const DUR = 650;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / DUR);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      setRevealFrac(1 - eased); // 1 (all before) → 0 (all after)
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else setRevealFrac(null);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reveal]);
+
   // Render on any recipe/mode change, coalesced to a frame. In crop mode the
   // crop is bypassed (cropPreview) so the whole image shows under the overlay.
-  const split = splitOn && !cropMode ? splitFrac : null;
   useEffect(() => {
     if (!rendererRef.current) return;
     cancelAnimationFrame(rafRef.current);
@@ -176,7 +204,13 @@ export function EditorCanvas() {
             aria-hidden
             className="pointer-events-none absolute inset-0 z-[3] h-full w-full object-contain"
           />
-          {splitOn && !cropMode && (
+          {revealFrac != null && !cropMode && (
+            <div
+              className="pointer-events-none absolute top-0 bottom-0 z-[4] w-0 border-l-2 border-white shadow-[0_0_10px_rgba(0,0,0,0.7)]"
+              style={{ left: `${(1 - revealFrac) * 100}%` }}
+            />
+          )}
+          {splitOn && !cropMode && revealFrac == null && (
             <div
               className="pointer-events-none absolute top-0 bottom-0 z-[4] w-0 border-l-2 border-white/90 shadow-[0_0_6px_rgba(0,0,0,0.6)]"
               style={{ left: `${splitFrac * 100}%` }}

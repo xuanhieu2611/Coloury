@@ -19,6 +19,10 @@ export interface LoadedImage {
 const MAX_PREVIEW = 2048; // long-edge cap for the live preview (PRD 5.3)
 const HISTORY_LIMIT = 100;
 
+/** Which editing surface is shown. `simple` = filter-first front door (Auto Edit
+ *  + Filters); `advanced` reveals the pro cockpit (histogram + manual panels). */
+export type EditMode = 'simple' | 'advanced';
+
 interface EditorState {
   image: LoadedImage | null;
   recipe: EditRecipe;
@@ -26,8 +30,15 @@ interface EditorState {
   future: EditRecipe[];
   // Recipe as it was before the current uncommitted (drag) edit sequence began.
   pending: EditRecipe | null;
+  // Increments to ask the canvas to play a one-shot before→after "reveal" wipe
+  // (the WOW moment when a filter is tapped). The canvas watches this nonce.
+  reveal: number;
+  // UI-only view state (not part of the recipe). Persists across image loads so
+  // a user who prefers Advanced keeps it when they open the next photo.
+  mode: EditMode;
 
   setImage: (img: LoadedImage) => void;
+  setMode: (mode: EditMode) => void;
   /** Update the recipe. `commit` pushes a history entry (default true). Live
    *  slider drags pass commit=false and call commit() once on release. */
   update: (mutator: (r: EditRecipe) => void, commit?: boolean) => void;
@@ -38,6 +49,8 @@ interface EditorState {
   resetAll: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  /** Play a one-shot before→after wipe on the canvas (called when a look is picked). */
+  triggerReveal: () => void;
 }
 
 export const useEditor = create<EditorState>((set, get) => ({
@@ -46,9 +59,14 @@ export const useEditor = create<EditorState>((set, get) => ({
   past: [],
   future: [],
   pending: null,
+  reveal: 0,
+  mode: 'simple',
 
   setImage: (img) =>
-    set({ image: img, recipe: defaultRecipe(), past: [], future: [], pending: null }),
+    // `mode` is intentionally omitted so the user's Simple/Advanced choice persists.
+    set({ image: img, recipe: defaultRecipe(), past: [], future: [], pending: null, reveal: 0 }),
+
+  setMode: (mode) => set({ mode }),
 
   update: (mutator, commit = true) => {
     const { recipe, past, pending } = get();
@@ -133,6 +151,8 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   canUndo: () => get().past.length > 0,
   canRedo: () => get().future.length > 0,
+
+  triggerReveal: () => set({ reveal: get().reveal + 1 }),
 }));
 
 const HEIC_RE = /\.(heic|heif)$/i;

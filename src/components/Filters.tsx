@@ -44,12 +44,13 @@ function buildThumbnails(preview: HTMLCanvasElement): Record<string, string> {
   return out;
 }
 
-export function Filters() {
+export function Filters({ hero = false }: { hero?: boolean }) {
   const image = useEditor((s) => s.image);
   const update = useEditor((s) => s.update);
   const commit = useEditor((s) => s.commit);
+  const triggerReveal = useEditor((s) => s.triggerReveal);
 
-  const [category, setCategory] = useState<FilterCategory>('Digicam');
+  const [category, setCategory] = useState<FilterCategory>('Film');
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(100); // 0..100 strength
@@ -64,13 +65,14 @@ export function Filters() {
 
   if (!image) return null;
 
-  // Apply a filter at a given strength; preserves the user's crop geometry.
+  // Apply a filter at a given strength. The filter's LUT drives the grade (so we
+  // adopt `target.lut`), but framing — crop + overlays — is preserved: picking a
+  // look never reframes the photo or drops a border/date-stamp the user added.
   const applyFilter = (f: Filter, pct: number, doCommit: boolean) => {
     const target = lerpRecipe(defaultRecipe(), f.recipe, pct / 100);
     update((r) => {
       const crop = r.crop;
       const overlays = r.overlays; // framing (stamp/leak/dust/border) is independent of the grade
-      const lut = r.lut; // a chosen film-sim LUT is independent of the grade too
       const merged = cloneRecipe(target);
       (Object.keys(merged) as (keyof typeof merged)[]).forEach((k) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,7 +80,6 @@ export function Filters() {
       });
       r.crop = crop;
       r.overlays = overlays;
-      r.lut = lut;
     }, doCommit);
   };
 
@@ -86,10 +87,12 @@ export function Filters() {
     setActiveId(f.id);
     setIntensity(100);
     applyFilter(f, 100, true);
+    triggerReveal(); // play the before→after wipe so the transformation lands
   };
 
   const activeFilter = FILTERS.find((f) => f.id === activeId) ?? null;
   const shown = FILTERS.filter((f) => f.category === category);
+  const dim = hero ? 84 : 68; // thumbnail edge — filters are the hero in Simple mode
 
   return (
     <section className="px-3.5 py-3.5">
@@ -101,6 +104,9 @@ export function Filters() {
           </svg>
         </span>
         <h2 className="m-0 text-[13px] font-semibold tracking-tight text-text">Filters</h2>
+        {hero && (
+          <span className="ml-auto text-[11px] text-text-dim">Tap a look, then dial it in</span>
+        )}
       </div>
 
       {/* Category tabs */}
@@ -137,10 +143,14 @@ export function Filters() {
               title={f.name}
             >
               <div
-                className={`relative h-[68px] w-[68px] overflow-hidden rounded-lg border-2 transition-[border-color,transform] duration-150 group-active:scale-[0.97] group-focus-visible:outline-2 group-focus-visible:outline-ring group-focus-visible:outline-offset-2 ${
+                className={`relative overflow-hidden rounded-lg border-2 transition-[border-color,transform] duration-150 group-active:scale-[0.97] group-focus-visible:outline-2 group-focus-visible:outline-ring group-focus-visible:outline-offset-2 ${
                   active ? 'border-accent' : 'border-transparent group-hover:border-border-strong'
                 }`}
-                style={thumbs[f.id] ? undefined : { background: f.swatch }}
+                style={{
+                  width: dim,
+                  height: dim,
+                  ...(thumbs[f.id] ? null : { background: f.swatch }),
+                }}
               >
                 {thumbs[f.id] && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -151,11 +161,19 @@ export function Filters() {
                     draggable={false}
                   />
                 )}
+                {/* Premium seam: marks subscription looks. Gating (block + paywall)
+                    wires in later; today the badge just establishes the free/pro split. */}
+                {f.premium && (
+                  <span className="absolute right-1 top-1 rounded-[4px] bg-black/55 px-1 py-px text-[8px] font-semibold uppercase leading-none tracking-wide text-amber-300 ring-1 ring-white/15 backdrop-blur-sm">
+                    Pro
+                  </span>
+                )}
               </div>
               <div
-                className={`mt-1 w-[68px] truncate text-center text-[10px] leading-tight transition-colors duration-150 ${
+                className={`mt-1 truncate text-center text-[10px] leading-tight transition-colors duration-150 ${
                   active ? 'text-accent' : 'text-text-dim group-hover:text-text'
                 }`}
+                style={{ width: dim }}
               >
                 {f.name}
               </div>
